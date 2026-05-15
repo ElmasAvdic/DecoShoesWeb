@@ -1,0 +1,53 @@
+﻿@model IEnumerable<DecoShoesWeb.Models.Order>
+
+@{
+    ViewData["Title"] = "Narudžbine";
+}
+
+<h1>Narudžbine</h1>
+
+<p>
+    <a asp-action="Create">Dodaj Novu</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Kupac
+            </th>
+            <th>
+                Datum Narudžbe
+            </th>
+            <th>
+                Ukupno
+            </th>
+            <th>
+                Status
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Customer.CustomerID)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.OrderDate)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.TotalAmount)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Status)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.OrderID">Uredi</a> |
+                <a asp-action="Details" asp-route-id="@item.OrderID">Detalji</a> |
+                <a asp-action="Delete" asp-route-id="@item.OrderID">Obriši</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>

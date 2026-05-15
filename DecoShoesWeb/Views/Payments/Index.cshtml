@@ -1,0 +1,59 @@
+﻿@model IEnumerable<DecoShoesWeb.Models.Payment>
+
+@{
+    ViewData["Title"] = "Plaćanja";
+}
+
+<h1>Plaćanja</h1>
+
+<p>
+    <a asp-action="Create">Dodaj Novo</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Narudžbina
+            </th>
+            <th>
+                Datum Plaćanja
+            </th>
+            <th>
+                Iznos
+            </th>
+            <th>
+                Način Plaćanja
+            </th>
+            <th>
+                Status Plaćanja
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Order.OrderID)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PaymentDate)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Amount)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PaymentMethod)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.PaymentStatus)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.PaymentID">Uredi</a> |
+                <a asp-action="Details" asp-route-id="@item.PaymentID">Detalji</a> |
+                <a asp-action="Delete" asp-route-id="@item.PaymentID">Obriši</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
