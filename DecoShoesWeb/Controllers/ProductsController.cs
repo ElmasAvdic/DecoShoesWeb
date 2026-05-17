@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -49,7 +49,7 @@ namespace DecoShoesWeb.Controllers
         // GET: Products/Create
         public IActionResult Create()
         {
-            ViewData["CategoryID"] = new SelectList(_context.Categories, "CategoryID", "CategoryID");
+            ViewData["CategoryID"] = new SelectList(_context.Categories.OrderBy(c => c.Name), "CategoryID", "Name");
             return View();
         }
 
@@ -66,7 +66,7 @@ namespace DecoShoesWeb.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["CategoryID"] = new SelectList(_context.Categories, "CategoryID", "CategoryID", product.CategoryID);
+            ViewData["CategoryID"] = new SelectList(_context.Categories.OrderBy(c => c.Name), "CategoryID", "Name", product.CategoryID);
             return View(product);
         }
 
@@ -83,7 +83,7 @@ namespace DecoShoesWeb.Controllers
             {
                 return NotFound();
             }
-            ViewData["CategoryID"] = new SelectList(_context.Categories, "CategoryID", "CategoryID", product.CategoryID);
+            ViewData["CategoryID"] = new SelectList(_context.Categories.OrderBy(c => c.Name), "CategoryID", "Name", product.CategoryID);
             return View(product);
         }
 
@@ -119,7 +119,7 @@ namespace DecoShoesWeb.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["CategoryID"] = new SelectList(_context.Categories, "CategoryID", "CategoryID", product.CategoryID);
+            ViewData["CategoryID"] = new SelectList(_context.Categories.OrderBy(c => c.Name), "CategoryID", "Name", product.CategoryID);
             return View(product);
         }
 

@@ -2,8 +2,9 @@
 @model List<Product>
 @{
     ViewData["Title"] = "DecoShoes - Početna";
-    var categories = (List<Category>)ViewData["Categories"];
+    var categories = (List<Category>)(ViewData["Categories"] ?? new List<Category>());
     var selectedCategoryId = (int?)ViewData["SelectedCategoryId"];
+    var selectedCategory = categories.FirstOrDefault(c => c.CategoryID == selectedCategoryId);
 }
 
 <style>
@@ -270,7 +271,7 @@
 
 <!-- Proizvodi Section -->
 <div class="products-section">
-    <h2 class="products-title">🏆 Najpovoljniji Proizvodi</h2>
+    <h2 class="products-title">@(selectedCategory == null ? "🏆 Najpovoljniji Proizvodi" : selectedCategory.Name)</h2>
 
     @if (Model.Count == 0)
     {

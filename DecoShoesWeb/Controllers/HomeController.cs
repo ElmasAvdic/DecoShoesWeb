@@ -20,7 +20,14 @@ namespace DecoShoesWeb.Controllers
         public async Task<IActionResult> Index(int? categoryId)
         {
             // Uèitaj sve kategorije
-            var categories = await _context.Categories.ToListAsync();
+            var categories = await _context.Categories
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+
+            if (categoryId.HasValue && !categories.Any(c => c.CategoryID == categoryId.Value))
+            {
+                categoryId = null;
+            }
             ViewData["Categories"] = categories;
             ViewData["SelectedCategoryId"] = categoryId;
 
@@ -34,7 +41,10 @@ namespace DecoShoesWeb.Controllers
             }
 
             // Sortiraj po cijeni (od nižih prema višim)
-            var productList = await products.OrderBy(p => p.Price).ToListAsync();
+            var productList = await products
+                .OrderBy(p => p.Price)
+                .ThenBy(p => p.Name)
+                .ToListAsync();
 
             return View(productList);
         }
