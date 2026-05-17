@@ -35,6 +35,7 @@ namespace DecoShoesWeb.Controllers
             }
 
             var product = await _context.Products
+                .Include(p => p.Category)
                 .Include(p => p.ProductSizes)
                 .FirstOrDefaultAsync(m => m.ProductID == id);
             if (product == null)
