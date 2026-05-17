@@ -22,42 +22,93 @@ namespace DecoShoesWeb.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddToCart(int productId, int productSizeId, int quantity)
+        public async Task<IActionResult> AddToCart(int productId, int? productSizeId, int quantity)
         {
             var product = await _context.Products.FindAsync(productId);
-            var productSize = await _context.ProductSizes.FindAsync(productSizeId);
 
-            if (product == null || productSize == null)
+            if (product == null)
             {
                 return NotFound();
             }
 
-            if (quantity > productSize.StockQuantity)
+            if (quantity < 1)
             {
-                TempData["Message"] = "Nema dovoljno zalihe za odabranu veličinu.";
+                TempData["Message"] = "Količina mora biti najmanje 1.";
                 return RedirectToAction("Details", "Products", new { id = productId });
             }
 
             var cart = GetCart();
 
-            var existingItem = cart.FirstOrDefault(x => x.ProductSizeId == productSizeId);
-
-            if (existingItem != null)
+            if (product.HasSizes)
             {
-                existingItem.Quantity += quantity;
+                if (productSizeId == null)
+                {
+                    TempData["Message"] = "Molimo izaberite veličinu.";
+                    return RedirectToAction("Details", "Products", new { id = productId });
+                }
+
+                var productSize = await _context.ProductSizes.FindAsync(productSizeId.Value);
+
+                if (productSize == null || productSize.ProductID != productId)
+                {
+                    return NotFound();
+                }
+
+                var existingItem = cart.FirstOrDefault(x => x.ProductId == productId && x.ProductSizeId == productSizeId.Value);
+                var requestedQuantity = quantity + (existingItem?.Quantity ?? 0);
+
+                if (requestedQuantity > productSize.StockQuantity)
+                {
+                    TempData["Message"] = "Nema dovoljno zalihe za odabranu veličinu.";
+                    return RedirectToAction("Details", "Products", new { id = productId });
+                }
+
+                if (existingItem != null)
+                {
+                    existingItem.Quantity += quantity;
+                }
+                else
+                {
+                    cart.Add(new CartItem
+                    {
+                        ProductId = productId,
+                        ProductSizeId = productSizeId.Value,
+                        ProductName = product.Name,
+                        ImageUrl = product.ImageUrl,
+                        Size = productSize.Size,
+                        Quantity = quantity,
+                        Price = product.Price
+                    });
+                }
             }
             else
             {
-                cart.Add(new CartItem
+                var stockQuantity = product.StockQuantity ?? 0;
+
+                var existingItem = cart.FirstOrDefault(x => x.ProductId == productId && x.ProductSizeId == null);
+                var requestedQuantity = quantity + (existingItem?.Quantity ?? 0);
+
+                if (requestedQuantity > stockQuantity)
                 {
-                    ProductId = productId,
-                    ProductSizeId = productSizeId,
-                    ProductName = product.Name,
-                    ImageUrl = product.ImageUrl,
-                    Size = productSize.Size,
-                    Quantity = quantity,
-                    Price = product.Price
-                });
+                    TempData["Message"] = "Nema dovoljno zalihe za odabrani proizvod.";
+                    return RedirectToAction("Details", "Products", new { id = productId });
+                }
+
+                if (existingItem != null)
+                {
+                    existingItem.Quantity += quantity;
+                }
+                else
+                {
+                    cart.Add(new CartItem
+                    {
+                        ProductId = productId,
+                        ProductName = product.Name,
+                        ImageUrl = product.ImageUrl,
+                        Quantity = quantity,
+                        Price = product.Price
+                    });
+                }
             }
 
             SaveCart(cart);
@@ -65,11 +116,11 @@ namespace DecoShoesWeb.Controllers
             return RedirectToAction("Index");
         }
 
-        public IActionResult Remove(int productSizeId)
+        public IActionResult Remove(int productId, int? productSizeId)
         {
             var cart = GetCart();
 
-            var item = cart.FirstOrDefault(x => x.ProductSizeId == productSizeId);
+            var item = cart.FirstOrDefault(x => x.ProductId == productId && x.ProductSizeId == productSizeId);
 
             if (item != null)
             {

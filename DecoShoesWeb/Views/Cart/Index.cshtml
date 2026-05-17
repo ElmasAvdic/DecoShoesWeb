@@ -40,7 +40,14 @@
                         </td>
 
                         <td>
-                            <span class="badge bg-secondary">@item.Size</span>
+                            @if (!string.IsNullOrWhiteSpace(item.Size))
+                            {
+                                <span class="badge bg-secondary">@item.Size</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
                         </td>
 
                         <td>
@@ -53,6 +60,7 @@
 
                         <td>
                             <a asp-action="Remove"
+                               asp-route-productId="@item.ProductId"
                                asp-route-productSizeId="@item.ProductSizeId"
                                class="btn btn-danger btn-sm">
                                 Ukloni

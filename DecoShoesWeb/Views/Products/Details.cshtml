@@ -30,7 +30,7 @@
     </div>
 
     <div class="product-details-info">
-        <p class="product-category">Obuća</p>
+        <p class="product-category">@(Model.Category?.Name ?? "Proizvod")</p>
 
         @if (Model.DiscountPercent != null && Model.DiscountPercent > 0)
         {
@@ -46,8 +46,6 @@
 
         <hr />
 
-        <h5>Izaberi veličinu</h5>
-
         <!-- Error Message -->
         <div id="stockMessage" class="alert alert-danger" style="display: none; margin-bottom: 15px;">
             <span id="stockMessageText"></span>
@@ -56,24 +54,33 @@
         <form asp-controller="Cart" asp-action="AddToCart" method="post" onsubmit="return validateForm()">
             <input type="hidden" name="productId" value="@Model.ProductID" />
 
-            <div class="size-grid">
-                @foreach (var size in Model.ProductSizes)
-                {
-                    if (size.StockQuantity > 0)
+            @if (Model.HasSizes)
+            {
+                <h5>Izaberi veličinu</h5>
+
+                <div class="size-grid">
+                    @foreach (var size in Model.ProductSizes)
                     {
-                        <label class="size-option">
-                            <input type="radio" name="productSizeId" value="@size.ProductSizeID" data-stock="@size.StockQuantity" data-size="@size.Size" class="size-input" />
-                            <span>@size.Size</span>
-                        </label>
+                        if (size.StockQuantity > 0)
+                        {
+                            <label class="size-option">
+                                <input type="radio" name="productSizeId" value="@size.ProductSizeID" data-stock="@size.StockQuantity" data-size="@size.Size" class="size-input" />
+                                <span>@size.Size</span>
+                            </label>
+                        }
+                        else
+                        {
+                            <div class="size-option disabled">
+                                <span>@size.Size</span>
+                            </div>
+                        }
                     }
-                    else
-                    {
-                        <div class="size-option disabled">
-                            <span>@size.Size</span>
-                        </div>
-                    }
-                }
-            </div>
+                </div>
+            }
+            else
+            {
+                <input type="hidden" id="productStock" value="@(Model.StockQuantity ?? 0)" />
+            }
 
             <div class="quantity-box">
                 <label>Količina</label>
@@ -211,12 +218,30 @@
     function validateForm() {
         const selectedSize = document.querySelector('input[name="productSizeId"]:checked');
         const quantity = parseInt(document.getElementById('quantityInput').value);
+        const productStockInput = document.getElementById('productStock');
         const messageDiv = document.getElementById('stockMessage');
         const messageText = document.getElementById('stockMessageText');
 
         messageDiv.style.display = 'none';
 
-        // Provera da li je veličina izabrana
+        if (quantity < 1) {
+            messageText.textContent = 'Količina mora biti najmanje 1!';
+            messageDiv.style.display = 'block';
+            return false;
+        }
+
+        if (productStockInput) {
+            const stock = parseInt(productStockInput.value);
+
+            if (quantity > stock) {
+                messageText.textContent = `Nema dovoljno dostupnih komada. Dostupno je: ${stock}`;
+                messageDiv.style.display = 'block';
+                return false;
+            }
+
+            return true;
+        }
+
         if (!selectedSize) {
             messageText.textContent = 'Molimo izaberite veličinu!';
             messageDiv.style.display = 'block';
@@ -233,25 +258,40 @@
             return false;
         }
 
-        if (quantity < 1) {
-            messageText.textContent = 'Količina mora biti najmanje 1!';
-            messageDiv.style.display = 'block';
-            return false;
-        }
-
         return true;
     }
 
     function validateQuantity() {
         const selectedSize = document.querySelector('input[name="productSizeId"]:checked');
         const quantity = parseInt(document.getElementById('quantityInput').value) || 1;
+        const productStockInput = document.getElementById('productStock');
         const messageDiv = document.getElementById('stockMessage');
         const messageText = document.getElementById('stockMessageText');
         const submitBtn = document.getElementById('submitBtn');
 
         messageDiv.style.display = 'none';
 
-        if (selectedSize) {
+        if (productStockInput) {
+            const stock = parseInt(productStockInput.value);
+
+            if (quantity > stock) {
+                messageText.textContent = `Nema dovoljno dostupnih komada. Dostupno je: ${stock}`;
+                messageDiv.style.display = 'block';
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.5';
+                submitBtn.style.cursor = 'not-allowed';
+            } else if (quantity < 1) {
+                messageText.textContent = 'Količina mora biti najmanje 1!';
+                messageDiv.style.display = 'block';
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.5';
+                submitBtn.style.cursor = 'not-allowed';
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+            }
+        } else if (selectedSize) {
             const stock = parseInt(selectedSize.getAttribute('data-stock'));
             const size = selectedSize.getAttribute('data-size');
 
