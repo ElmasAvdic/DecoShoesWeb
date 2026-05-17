@@ -1,21 +1,42 @@
 using System.Diagnostics;
+using DecoShoesWeb.Data;
 using DecoShoesWeb.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace DecoShoesWeb.Controllers
 {
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
+        private readonly ApplicationDbContext _context;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(ILogger<HomeController> logger, ApplicationDbContext context)
         {
             _logger = logger;
+            _context = context;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index(int? categoryId)
         {
-            return View();
+            // Uèitaj sve kategorije
+            var categories = await _context.Categories.ToListAsync();
+            ViewData["Categories"] = categories;
+            ViewData["SelectedCategoryId"] = categoryId;
+
+            // Uèitaj proizvode
+            IQueryable<Product> products = _context.Products.Include(p => p.Category);
+
+            // Filtriraj po kategoriji ako je odabrana
+            if (categoryId.HasValue && categoryId.Value > 0)
+            {
+                products = products.Where(p => p.CategoryID == categoryId.Value);
+            }
+
+            // Sortiraj po cijeni (od nižih prema višim)
+            var productList = await products.OrderBy(p => p.Price).ToListAsync();
+
+            return View(productList);
         }
 
         public IActionResult Privacy()

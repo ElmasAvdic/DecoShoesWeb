@@ -63,23 +63,19 @@
             </tbody>
         </table>
 
-        <div class="row mt-4">
-            <div class="col-md-6">
-                <a asp-controller="Products" asp-action="Index" class="btn btn-secondary btn-lg w-100">
-                    ← Nazad u kupovinu
-                </a>
+        <div class="cart-summary-section mt-5">
+            <div class="cart-total-box">
+                <h3 class="cart-total-label">Ukupno za Plaćanje:</h3>
+                <h2 class="cart-total-amount">@Model.Sum(x => x.Total).ToString("0.00") KM</h2>
             </div>
-            <div class="col-md-6">
-                <div class="text-end">
-                    <div class="mb-3">
-                        <h3 class="mb-3">
-                            Ukupno: <span class="text-danger">@Model.Sum(x => x.Total).ToString("0.00") BAM</span>
-                        </h3>
-                    </div>
-                    <a href="#" class="btn btn-success btn-lg w-100">
-                        Sledeći Korak →
-                    </a>
-                </div>
+
+            <div class="cart-actions">
+                <a asp-controller="Home" asp-action="Index" class="cart-btn cart-btn-secondary">
+                    ← Nastavi Kupovinu
+                </a>
+                <a href="#" class="cart-btn cart-btn-primary">
+                    Sledeći Korak →
+                </a>
             </div>
         </div>
     }

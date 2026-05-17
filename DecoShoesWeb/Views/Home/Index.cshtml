@@ -1,8 +1,396 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@using DecoShoesWeb.Models
+@model List<Product>
+@{
+    ViewData["Title"] = "DecoShoes - Početna";
+    var categories = (List<Category>)ViewData["Categories"];
+    var selectedCategoryId = (int?)ViewData["SelectedCategoryId"];
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<style>
+    .hero-banner {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 60px 20px;
+        text-align: center;
+        margin-bottom: 40px;
+        border-radius: 8px;
+    }
+
+    .hero-banner h1 {
+        font-size: 3rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .hero-banner p {
+        font-size: 1.2rem;
+        margin-bottom: 0;
+    }
+
+    .categories-section {
+        margin-bottom: 40px;
+    }
+
+    .categories-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    .category-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .category-btn {
+        padding: 8px 20px;
+        border: 2px solid #667eea;
+        background-color: white;
+        color: #667eea;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        font-size: 0.95rem;
+    }
+
+    .category-btn:hover {
+        background-color: #f0f0f0;
+        transform: translateY(-2px);
+    }
+
+    .category-btn.active {
+        background-color: #667eea;
+        color: white;
+    }
+
+    .clear-filter-btn {
+        padding: 8px 20px;
+        border: 2px solid #999;
+        background-color: white;
+        color: #999;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        font-size: 0.95rem;
+    }
+
+    .clear-filter-btn:hover {
+        background-color: #f0f0f0;
+    }
+
+    .products-section {
+        margin-top: 40px;
+    }
+
+    .products-title {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 30px;
+        color: #333;
+    }
+
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 25px;
+    }
+
+    .product-card {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .product-card:hover {
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        transform: translateY(-5px);
+    }
+
+    .product-image-container {
+        position: relative;
+        width: 100%;
+        height: 200px;
+        background-color: #f5f5f5;
+        overflow: hidden;
+    }
+
+    .product-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .product-info {
+        padding: 15px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .product-name {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 8px;
+        line-height: 1.4;
+    }
+
+    .product-brand {
+        font-size: 0.85rem;
+        color: #999;
+        margin-bottom: 8px;
+    }
+
+    .product-category {
+        font-size: 0.8rem;
+        color: #667eea;
+        font-weight: 500;
+        margin-bottom: 10px;
+    }
+
+    .product-price-container {
+        margin-top: auto;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+    }
+
+    .product-price {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #667eea;
+    }
+
+    .product-discount {
+        font-size: 0.85rem;
+        color: #ff6b6b;
+        margin-left: 10px;
+        font-weight: 500;
+    }
+
+    .original-price {
+        font-size: 0.9rem;
+        color: #999;
+        text-decoration: line-through;
+        margin-right: 5px;
+    }
+
+    .add-to-cart-btn {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #667eea;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.3s ease;
+    }
+
+    .add-to-cart-btn:hover {
+        background-color: #764ba2;
+    }
+
+    .no-products {
+        text-align: center;
+        padding: 40px;
+        font-size: 1.2rem;
+        color: #999;
+    }
+
+    .stock-status {
+        font-size: 0.8rem;
+        margin-top: 5px;
+        font-weight: 500;
+    }
+
+    .stock-status.in-stock {
+        color: #27ae60;
+    }
+
+    .stock-status.low-stock {
+        color: #f39c12;
+    }
+
+    .stock-status.out-of-stock {
+        color: #e74c3c;
+    }
+
+    .discount-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: #ff6b6b;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 0.85rem;
+        font-weight: bold;
+    }
+</style>
+
+<!-- Hero Banner sa Reklamom -->
+<div class="hero-banner">
+    <h1>🛞 DecoShoes - Pronađite Svoje Idealne Cipele</h1>
+    <p>Veliki izbor cipela sa najboljim cijenama i kvalitetom</p>
 </div>
+
+<!-- Kategorije Section -->
+<div class="categories-section">
+    <h2 class="categories-title">📂 Filtriranje po Kategorijama</h2>
+    <div class="category-pills">
+        @if (selectedCategoryId.HasValue && selectedCategoryId > 0)
+        {
+            <a href="@Url.Action("Index", "Home")" class="clear-filter-btn">
+                ✕ Obriši Filter
+            </a>
+        }
+
+        @foreach (var category in categories)
+        {
+            var isActive = selectedCategoryId == category.CategoryID;
+            <a href="@Url.Action("Index", "Home", new { categoryId = category.CategoryID })" 
+               class="category-btn @(isActive ? "active" : "")">
+                @category.Name
+            </a>
+        }
+    </div>
+</div>
+
+<!-- Proizvodi Section -->
+<div class="products-section">
+    <h2 class="products-title">🏆 Najpovoljniji Proizvodi</h2>
+
+    @if (Model.Count == 0)
+    {
+        <div class="no-products">
+            Nema dostupnih proizvoda u ovoj kategoriji.
+        </div>
+    }
+    else
+    {
+        <div class="products-grid">
+            @foreach (var product in Model)
+            {
+                var hasDiscount = product.DiscountPercent.HasValue && product.DiscountPercent > 0;
+                var discountedPrice = hasDiscount 
+                    ? product.Price * (1 - (product.DiscountPercent.Value / 100))
+                    : product.Price;
+
+                var stockStatus = product.StockQuantity switch
+                {
+                    null => "Dostupno",
+                    0 => "Nema na Zalihi",
+                    > 0 and <= 5 => "Malo na Zalihi",
+                    _ => "Na Zalihi"
+                };
+
+                var stockClass = product.StockQuantity switch
+                {
+                    0 => "out-of-stock",
+                    > 0 and <= 5 => "low-stock",
+                    _ => "in-stock"
+                };
+
+                <a href="@Url.Action("Details", "Products", new { id = product.ProductID })" class="product-card" title="@product.Name">
+                    <div class="product-image-container">
+                        @if (!string.IsNullOrEmpty(product.ImageUrl))
+                        {
+                            <img src="@product.ImageUrl" alt="@product.Name" class="product-image">
+                        }
+                        else
+                        {
+                            <div style="width: 100%; height: 100%; background-color: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #999;">
+                                Slika nije dostupna
+                            </div>
+                        }
+
+                        @if (hasDiscount)
+                        {
+                            <div class="discount-badge">
+                                -@product.DiscountPercent.Value.ToString("F0")%
+                            </div>
+                        }
+                    </div>
+
+                    <div class="product-info">
+                        <div class="product-name">@product.Name</div>
+
+                        @if (!string.IsNullOrEmpty(product.Brand))
+                        {
+                            <div class="product-brand">👟 @product.Brand</div>
+                        }
+
+                        @if (product.Category != null)
+                        {
+                            <div class="product-category">@product.Category.Name</div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(product.Color))
+                        {
+                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">
+                                Boja: <strong>@product.Color</strong>
+                            </div>
+                        }
+
+                        <div class="product-price-container">
+                            <div>
+                                @if (hasDiscount)
+                                {
+                                    <span class="original-price">@product.Price.ToString("F2") KM</span>
+                                    <span class="product-discount">-@product.DiscountPercent.Value.ToString("F0")%</span>
+                                }
+                                <div class="product-price">@discountedPrice.ToString("F2") KM</div>
+                            </div>
+                        </div>
+
+                        <div class="stock-status @stockClass">
+                            @if (product.StockQuantity.HasValue)
+                            {
+                                <span>@stockStatus (@product.StockQuantity kom.)</span>
+                            }
+                            else
+                            {
+                                <span>@stockStatus</span>
+                            }
+                        </div>
+
+                        @if (product.StockQuantity != 0)
+                        {
+                            <button class="add-to-cart-btn" onclick="addToCart(@product.ProductID, event)" type="button">
+                                🛒 Dodaj u Korpu
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="add-to-cart-btn" style="background-color: #999; cursor: not-allowed;" disabled>
+                                ❌ Nema na Zalihi
+                            </button>
+                        }
+                    </div>
+                </a>
+            }
+        </div>
+    }
+</div>
+
+<script>
+    function addToCart(productId, event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Redirekcija na detalje proizvoda gdje korisnik može odabrati veličinu
+        window.location.href = '@Url.Action("Details", "Products")' + '?id=' + productId;
+    }
+</script>
