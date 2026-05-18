@@ -1,142 +1,110 @@
-﻿@model IEnumerable<DecoShoesWeb.Models.Product>
+@model IEnumerable<DecoShoesWeb.Models.Product>
 
 @{
-    ViewData["Title"] = "Proizvodi";
+    ViewData["Title"] = "Admin proizvodi";
 }
 
 <h1>Proizvodi</h1>
 
 <p>
-    <a asp-action="Create">Dodaj Novi</a>
+    <a asp-action="Create" class="btn btn-primary">Dodaj novi proizvod</a>
 </p>
-<div class="row">
-    @if (TempData["Message"] != null)
-    {
-        <div class="alert alert-success">
-            @TempData["Message"]
-        </div>
-    }
 
-    <div class="container-fluid mt-4">
-        <div class="row g-4">
-            @foreach (var item in Model)
-            {
-                <div class="col-md-4 col-sm-6">
-                    <div class="product-card">
-                        <a asp-action="Details" asp-route-id="@item.ProductID" class="text-decoration-none text-dark">
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success mt-3">@TempData["Message"]</div>
+}
 
-                            <div class="product-image-box">
-                                
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger mt-3">@TempData["Error"]</div>
+}
 
-                                @if (!string.IsNullOrEmpty(item.ImageUrl))
-                                {
-                                    <img src="@item.ImageUrl" class="product-image" />
-                                }
-                                else
-                                {
-                                    <div class="no-image">No image</div>
-                                }
-                            </div>
+<table class="table align-middle admin-products-table mt-4">
+    <thead>
+        <tr>
+            <th>Naziv</th>
+            <th>Kategorija</th>
+            <th>Brend</th>
+            <th>Boja</th>
+            <th>Cijena</th>
+            <th>Popust</th>
+            <th>Zaliha</th>
+            <th>Brojevi</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model)
+{
+    var categoryName = item.Category?.ParentCategory != null
+        ? $"{item.Category.ParentCategory.Name} > {item.Category.Name}"
+        : item.Category?.Name ?? "-";
+    var sizeSummary = item.HasSizes
+        ? (item.ProductSizes.Any()
+            ? string.Join(", ", item.ProductSizes.OrderBy(s => s.Size).Select(s => $"{s.Size}: {s.StockQuantity}"))
+            : "Nema brojeva")
+        : "Ne";
 
-                            <div class="product-info">
-                                <p class="product-category">@(item.Category?.Name ?? "Proizvod")</p>
-                                <h5 class="product-name">@item.Name</h5>
-                           
+        <tr>
+            <td><strong>@item.Name</strong></td>
+            <td>@categoryName</td>
+            <td>@(item.Brand ?? "-")</td>
+            <td>@(item.Color ?? "-")</td>
+            <td>@item.Price.ToString("0.00") KM</td>
+            <td>@(item.DiscountPercent.HasValue && item.DiscountPercent > 0 ? $"{item.DiscountPercent:0.##}%" : "-")</td>
+            <td>@(item.StockQuantity?.ToString() ?? "-")</td>
+            <td class="size-summary">@sizeSummary</td>
+            <td class="text-end admin-actions">
+                <a asp-controller="ProductSizes" asp-action="Manage" asp-route-productId="@item.ProductID" class="btn btn-sm btn-outline-primary">Brojevi</a>
+                <a asp-action="Edit" asp-route-id="@item.ProductID" class="btn btn-sm btn-outline-secondary">Uredi</a>
+                <a asp-action="Details" asp-route-id="@item.ProductID" class="btn btn-sm btn-outline-secondary">Detalji</a>
+                <a asp-action="Delete" asp-route-id="@item.ProductID" class="btn btn-sm btn-danger">Obriši</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
 
-                                @if (item.DiscountPercent != null && item.DiscountPercent > 0)
-                                {
-                                    var discountedPrice = item.Price - (item.Price * item.DiscountPercent.Value / 100);
-
-                                    <span class="discount-label">-@item.DiscountPercent%</span>
-
-                                    <p class="old-price">@item.Price BAM</p>
-                                    <p class="product-price">@discountedPrice.ToString("0.00") BAM</p>
-                                }
-                                else
-                                {
-                                    <p class="product-price">@item.Price BAM</p>
-                                }
-                            </div>
-
-                        </a>
-                    </div>
-                </div>
-            }
-        </div>
-    </div>
-</div>
 <style>
-    .product-card {
-        border: none;
-        background: white;
-        transition: 0.2s;
+    .admin-products-table thead {
+        background: #d82736;
+        color: #fff;
     }
 
-        .product-card:hover {
-            transform: translateY(-3px);
-        }
-
-    .product-image-box {
-        position: relative;
-        background: #f7f7f7;
-        height: 360px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
+    .admin-products-table tbody tr:hover {
+        background: #fff1f3;
     }
 
-    .product-image {
-        max-width: 90%;
-        max-height: 90%;
-        object-fit: contain;
+    .admin-products-table .btn-danger {
+        background: #d82736;
+        border-color: #d82736;
     }
 
-    .discount-label {
-        position: absolute;
-        top: 14px;
-        left: 14px;
-        border: 1px solid red;
-        color: red;
-        font-size: 13px;
-        padding: 6px 12px;
-        background: white;
-        z-index: 2;
+    .admin-actions {
+        white-space: nowrap;
     }
 
-    .product-info {
-        padding-top: 18px;
+    .size-summary {
+        max-width: 260px;
+        white-space: normal;
+        color: #6f3741;
+        font-size: 14px;
     }
 
-    .product-category {
-        color: gray;
-        margin-bottom: 6px;
+    .admin-actions .btn-outline-primary {
+        border-color: #d82736;
+        color: #d82736;
     }
 
-    .product-name {
-        font-size: 17px;
-        font-weight: 600;
-        margin-bottom: 26px;
+    .admin-actions .btn-outline-primary:hover {
+        background: #d82736;
+        color: #fff;
     }
 
-    .product-price {
-        font-size: 20px;
-        font-weight: 700;
-    }
-
-    .no-image {
-        color: #aaa;
-        font-size: 18px;
-    }
-
-    .old-price {
-        text-decoration: line-through;
-        color: gray;
-        margin-bottom: 4px;
-    }
-
-    .product-price {
-        font-size: 20px;
-        font-weight: 700;
+    .admin-actions .btn-outline-secondary:hover {
+        background: #ffd166;
+        border-color: #ffd166;
+        color: #211a1d;
     }
 </style>

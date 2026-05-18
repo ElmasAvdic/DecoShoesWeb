@@ -13,8 +13,9 @@
         <form asp-action="Edit">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="ProductID" />
+            <input type="hidden" asp-for="CreatedAt" />
             <div class="form-group">
-                <label asp-for="CategoryID" class="control-label"></label>
+                <label asp-for="CategoryID" class="control-label">Podkategorija</label>
                 <select asp-for="CategoryID" class="form-control" asp-items="ViewBag.CategoryID"></select>
                 <span asp-validation-for="CategoryID" class="text-danger"></span>
             </div>

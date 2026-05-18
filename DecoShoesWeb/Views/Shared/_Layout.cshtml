@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -10,9 +10,9 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom main-nav mb-3">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">DecoShoesWeb</a>
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">DecoShoes</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -69,35 +69,7 @@
                         </li>
 
                     </ul>
-
-                    <!-- Cart Button on the Right -->
-                    <ul class="navbar-nav">
-                        <li class="nav-item">
-                            @{
-                                var cartJson = Context.Session.GetString("Cart");
-                                var cartCount = 0;
-                                if (!string.IsNullOrEmpty(cartJson))
-                                {
-                                    try
-                                    {
-                                        var cart = System.Text.Json.JsonSerializer.Deserialize<List<dynamic>>(cartJson) ?? new List<dynamic>();
-                                        cartCount = cart.Count;
-                                    }
-                                    catch { }
-                                }
-                            }
-                            <a class="nav-link text-dark" asp-controller="Cart" asp-action="Index" style="padding: 10px 20px; background-color: #ff6b6b; color: white !important; border-radius: 5px; font-weight: bold; position: relative;">
-                                🛒 Korpa
-                                @if (cartCount > 0)
-                                {
-                                    <span style="position: absolute; top: -8px; right: -8px; background-color: #FFA500; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;">
-                                        @cartCount
-                                    </span>
-                                }
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+</div>
             </div>
         </nav>
     </header>

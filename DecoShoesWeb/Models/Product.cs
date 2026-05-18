@@ -32,6 +32,8 @@ namespace DecoShoesWeb.Models
 
         public decimal? DiscountPercent { get; set; }
 
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
         public ICollection<ProductSize> ProductSizes { get; set; } = new List<ProductSize>();
     }
 }

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using DecoShoesWeb.Data;
@@ -19,14 +15,21 @@ namespace DecoShoesWeb.Controllers
             _context = context;
         }
 
-        // GET: Categories
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Categories.ToListAsync());
+            var categories = await _context.Categories
+                .Include(c => c.ParentCategory)
+                .OrderBy(c => c.ParentCategoryID.HasValue)
+                .ThenBy(c => c.ParentCategory != null ? c.ParentCategory.DisplayOrder : c.DisplayOrder)
+                .ThenBy(c => c.ParentCategory != null ? c.ParentCategory.Name : c.Name)
+                .ThenBy(c => c.DisplayOrder)
+                .ThenBy(c => c.Name)
+                .ToListAsync();
+
+            return View(categories);
         }
 
-        // GET: Categories/Details/5
-        public async Task<IActionResult> Details(int? id)
+        public async Task<IActionResult> Details(int? id, string? returnUrl = null)
         {
             if (id == null)
             {
@@ -34,39 +37,48 @@ namespace DecoShoesWeb.Controllers
             }
 
             var category = await _context.Categories
+                .Include(c => c.ParentCategory)
+                .Include(c => c.Subcategories)
                 .FirstOrDefaultAsync(m => m.CategoryID == id);
+
             if (category == null)
             {
                 return NotFound();
             }
 
+            ViewData["ReturnUrl"] = GetSafeReturnUrl(returnUrl);
             return View(category);
         }
 
-        // GET: Categories/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            return View();
+            await LoadParentCategoriesAsync();
+            return View(new Category { IsActive = true });
         }
 
-        // POST: Categories/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("CategoryID,Name,Description")] Category category)
+        public async Task<IActionResult> Create([Bind("CategoryID,Name,Description,ParentCategoryID,Slug,DisplayOrder,IsActive")] Category category)
         {
+            category.Slug = NormalizeSlug(category.Slug, category.Name);
+
+            if (await _context.Categories.AnyAsync(c => c.Slug == category.Slug))
+            {
+                ModelState.AddModelError(nameof(category.Slug), "Ovaj slug vec postoji.");
+            }
+
             if (ModelState.IsValid)
             {
                 _context.Add(category);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+
+            await LoadParentCategoriesAsync(category.ParentCategoryID);
             return View(category);
         }
 
-        // GET: Categories/Edit/5
-        public async Task<IActionResult> Edit(int? id)
+        public async Task<IActionResult> Edit(int? id, string? returnUrl = null)
         {
             if (id == null)
             {
@@ -78,19 +90,31 @@ namespace DecoShoesWeb.Controllers
             {
                 return NotFound();
             }
+
+            await LoadParentCategoriesAsync(category.ParentCategoryID, category.CategoryID);
+            ViewData["ReturnUrl"] = GetSafeReturnUrl(returnUrl);
             return View(category);
         }
 
-        // POST: Categories/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("CategoryID,Name,Description")] Category category)
+        public async Task<IActionResult> Edit(int id, [Bind("CategoryID,Name,Description,ParentCategoryID,Slug,DisplayOrder,IsActive")] Category category, string? returnUrl = null)
         {
             if (id != category.CategoryID)
             {
                 return NotFound();
+            }
+
+            if (category.ParentCategoryID == category.CategoryID)
+            {
+                ModelState.AddModelError(nameof(category.ParentCategoryID), "Kategorija ne moze biti sama sebi roditelj.");
+            }
+
+            category.Slug = NormalizeSlug(category.Slug, category.Name);
+
+            if (await _context.Categories.AnyAsync(c => c.Slug == category.Slug && c.CategoryID != category.CategoryID))
+            {
+                ModelState.AddModelError(nameof(category.Slug), "Ovaj slug vec postoji.");
             }
 
             if (ModelState.IsValid)
@@ -106,17 +130,19 @@ namespace DecoShoesWeb.Controllers
                     {
                         return NotFound();
                     }
-                    else
-                    {
-                        throw;
-                    }
+
+                    throw;
                 }
-                return RedirectToAction(nameof(Index));
+
+                var safeReturnUrl = GetSafeReturnUrl(returnUrl);
+                return Redirect(safeReturnUrl);
             }
+
+            await LoadParentCategoriesAsync(category.ParentCategoryID, category.CategoryID);
+            ViewData["ReturnUrl"] = GetSafeReturnUrl(returnUrl);
             return View(category);
         }
 
-        // GET: Categories/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -125,33 +151,95 @@ namespace DecoShoesWeb.Controllers
             }
 
             var category = await _context.Categories
+                .Include(c => c.ParentCategory)
+                .Include(c => c.Subcategories)
                 .FirstOrDefaultAsync(m => m.CategoryID == id);
+
             if (category == null)
             {
                 return NotFound();
             }
 
+            var categoryIds = new List<int> { category.CategoryID };
+            categoryIds.AddRange(category.Subcategories.Select(c => c.CategoryID));
+
+            ViewData["ProductCount"] = await _context.Products.CountAsync(p => categoryIds.Contains(p.CategoryID));
+            ViewData["SubcategoryCount"] = category.Subcategories.Count;
+
             return View(category);
         }
 
-        // POST: Categories/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
-            if (category != null)
+            var category = await _context.Categories
+                .Include(c => c.Subcategories)
+                .FirstOrDefaultAsync(c => c.CategoryID == id);
+
+            if (category == null)
             {
-                _context.Categories.Remove(category);
+                return RedirectToAction(nameof(Index));
             }
 
+            var categoryIds = new List<int> { category.CategoryID };
+            categoryIds.AddRange(category.Subcategories.Select(c => c.CategoryID));
+
+            var productCount = await _context.Products.CountAsync(p => categoryIds.Contains(p.CategoryID));
+            if (productCount > 0)
+            {
+                TempData["ErrorMessage"] = "Kategorija nije obrisana jer ima proizvode. Prvo prebaci proizvode u drugu kategoriju ili ih obrisi.";
+                return RedirectToAction(nameof(Delete), new { id });
+            }
+
+            if (category.Subcategories.Any())
+            {
+                _context.Categories.RemoveRange(category.Subcategories);
+            }
+
+            _context.Categories.Remove(category);
             await _context.SaveChangesAsync();
+
+            TempData["SuccessMessage"] = "Kategorija je obrisana.";
             return RedirectToAction(nameof(Index));
+        }
+
+        private async Task LoadParentCategoriesAsync(int? selectedParentId = null, int? excludedCategoryId = null)
+        {
+            var parents = await _context.Categories
+                .Where(c => c.ParentCategoryID == null && c.CategoryID != excludedCategoryId)
+                .OrderBy(c => c.DisplayOrder)
+                .ThenBy(c => c.Name)
+                .ToListAsync();
+
+            ViewData["ParentCategoryID"] = new SelectList(parents, "CategoryID", "Name", selectedParentId);
+        }
+
+        private static string NormalizeSlug(string? slug, string name)
+        {
+            var value = string.IsNullOrWhiteSpace(slug) ? name : slug;
+            return value.Trim().ToLowerInvariant()
+                .Replace(" ", "-")
+                .Replace("č", "c")
+                .Replace("ć", "c")
+                .Replace("š", "s")
+                .Replace("đ", "dj")
+                .Replace("ž", "z");
         }
 
         private bool CategoryExists(int id)
         {
             return _context.Categories.Any(e => e.CategoryID == id);
+        }
+
+        private string GetSafeReturnUrl(string? returnUrl)
+        {
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return returnUrl;
+            }
+
+            return Url.Action(nameof(Index)) ?? "/Categories";
         }
     }
 }

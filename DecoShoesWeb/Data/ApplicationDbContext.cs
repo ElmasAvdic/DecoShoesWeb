@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using DecoShoesWeb.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace DecoShoesWeb.Data
 {
@@ -17,7 +16,7 @@ namespace DecoShoesWeb.Data
 
         public DbSet<ProductSize> ProductSizes { get; set; }
 
-        public DbSet<Customer> Customers { get; set; } 
+        public DbSet<Customer> Customers { get; set; }
 
         public DbSet<Order> Orders { get; set; }
 
@@ -28,6 +27,17 @@ namespace DecoShoesWeb.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Category>()
+                .HasOne(c => c.ParentCategory)
+                .WithMany(c => c.Subcategories)
+                .HasForeignKey(c => c.ParentCategoryID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Category>()
+                .HasIndex(c => c.Slug)
+                .IsUnique()
+                .HasFilter("[Slug] IS NOT NULL");
 
             modelBuilder.Entity<ProductSize>()
                 .HasOne(ps => ps.Product)

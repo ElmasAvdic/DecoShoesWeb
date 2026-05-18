@@ -1,0 +1,37 @@
+@model DecoShoesWeb.Models.LoginViewModel
+
+@{
+    ViewData["Title"] = "Prijava";
+}
+
+<div class="account-panel">
+    <h1>Prijava</h1>
+    <p class="text-muted">Unesi email koji si koristio/la pri registraciji.</p>
+
+    <form asp-action="Login" method="post">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" placeholder="email@example.com" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Prijavi se</button>
+        <a asp-action="Register" class="btn btn-outline-secondary ms-2">Napravi račun</a>
+    </form>
+</div>
+
+<style>
+    .account-panel {
+        max-width: 520px;
+        border: 1px solid #f7c9cf;
+        border-radius: 6px;
+        padding: 24px;
+        background: #fff;
+    }
+</style>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

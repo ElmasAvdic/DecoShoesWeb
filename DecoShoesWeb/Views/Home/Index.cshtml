@@ -1,352 +1,242 @@
-﻿@using DecoShoesWeb.Models
+@using DecoShoesWeb.Models
+@using System.Text.Json
 @model List<Product>
 @{
-    ViewData["Title"] = "DecoShoes - Početna";
-    var categories = (List<Category>)(ViewData["Categories"] ?? new List<Category>());
+    ViewData["Title"] = "DecoShoes";
+    var rootCategories = (List<Category>)(ViewData["RootCategories"] ?? new List<Category>());
+    var subcategoriesByParent = (Dictionary<int, List<Category>>)(ViewData["SubcategoriesByParent"] ?? new Dictionary<int, List<Category>>());
     var selectedCategoryId = (int?)ViewData["SelectedCategoryId"];
-    var selectedCategory = categories.FirstOrDefault(c => c.CategoryID == selectedCategoryId);
+    var selectedRootCategoryId = (int?)ViewData["SelectedRootCategoryId"];
+    var selectedCategory = (Category?)ViewData["SelectedCategory"];
+    var currentFilter = (string?)ViewData["CurrentFilter"];
+    var currentSearch = (string?)ViewData["CurrentSearch"];
+    var customerName = Context.Session.GetString("CustomerName");
+    var wishlistJson = Context.Session.GetString("Wishlist");
+    var wishlistIds = string.IsNullOrWhiteSpace(wishlistJson)
+        ? new List<int>()
+        : JsonSerializer.Deserialize<List<int>>(wishlistJson) ?? new List<int>();
+    var wishlistCount = wishlistIds.Count;
+    var cartJson = Context.Session.GetString("Cart");
+    var cartItems = string.IsNullOrWhiteSpace(cartJson)
+        ? new List<CartItem>()
+        : JsonSerializer.Deserialize<List<CartItem>>(cartJson) ?? new List<CartItem>();
+    var cartCount = cartItems.Sum(item => item.Quantity);
+    var activeCategoryRouteId = selectedCategoryId;
+    var allProductsLabel = selectedCategory?.Name ?? (string.IsNullOrWhiteSpace(currentSearch) ? "Svi proizvodi" : $"Pretraga: {currentSearch}");
 }
 
 <style>
-    .hero-banner {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 60px 20px;
-        text-align: center;
-        margin-bottom: 40px;
-        border-radius: 8px;
-    }
-
-    .hero-banner h1 {
-        font-size: 3rem;
-        font-weight: bold;
-        margin-bottom: 10px;
-    }
-
-    .hero-banner p {
-        font-size: 1.2rem;
-        margin-bottom: 0;
-    }
-
-    .categories-section {
-        margin-bottom: 40px;
-    }
-
-    .categories-title {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin-bottom: 20px;
-        color: #333;
-    }
-
-    .category-pills {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-
-    .category-btn {
-        padding: 8px 20px;
-        border: 2px solid #667eea;
-        background-color: white;
-        color: #667eea;
-        border-radius: 25px;
-        text-decoration: none;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        cursor: pointer;
-        font-size: 0.95rem;
-    }
-
-    .category-btn:hover {
-        background-color: #f0f0f0;
-        transform: translateY(-2px);
-    }
-
-    .category-btn.active {
-        background-color: #667eea;
-        color: white;
-    }
-
-    .clear-filter-btn {
-        padding: 8px 20px;
-        border: 2px solid #999;
-        background-color: white;
-        color: #999;
-        border-radius: 25px;
-        text-decoration: none;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        cursor: pointer;
-        font-size: 0.95rem;
-    }
-
-    .clear-filter-btn:hover {
-        background-color: #f0f0f0;
-    }
-
-    .products-section {
-        margin-top: 40px;
-    }
-
-    .products-title {
-        font-size: 2rem;
-        font-weight: bold;
-        margin-bottom: 30px;
-        color: #333;
-    }
-
-    .products-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 25px;
-    }
-
-    .product-card {
-        background: white;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
-        text-decoration: none;
-        color: inherit;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .product-card:hover {
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-        transform: translateY(-5px);
-    }
-
-    .product-image-container {
-        position: relative;
-        width: 100%;
-        height: 200px;
-        background-color: #f5f5f5;
-        overflow: hidden;
-    }
-
-    .product-image {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .product-info {
-        padding: 15px;
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .product-name {
-        font-size: 1.1rem;
-        font-weight: bold;
-        color: #333;
-        margin-bottom: 8px;
-        line-height: 1.4;
-    }
-
-    .product-brand {
-        font-size: 0.85rem;
-        color: #999;
-        margin-bottom: 8px;
-    }
-
-    .product-category {
-        font-size: 0.8rem;
-        color: #667eea;
-        font-weight: 500;
-        margin-bottom: 10px;
-    }
-
-    .product-price-container {
-        margin-top: auto;
-        padding-top: 10px;
-        border-top: 1px solid #eee;
-    }
-
-    .product-price {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: #667eea;
-    }
-
-    .product-discount {
-        font-size: 0.85rem;
-        color: #ff6b6b;
-        margin-left: 10px;
-        font-weight: 500;
-    }
-
-    .original-price {
-        font-size: 0.9rem;
-        color: #999;
-        text-decoration: line-through;
-        margin-right: 5px;
-    }
-
-    .add-to-cart-btn {
-        margin-top: 10px;
-        padding: 10px;
-        background-color: #667eea;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        font-weight: 500;
-        transition: background-color 0.3s ease;
-    }
-
-    .add-to-cart-btn:hover {
-        background-color: #764ba2;
-    }
-
-    .no-products {
-        text-align: center;
-        padding: 40px;
-        font-size: 1.2rem;
-        color: #999;
-    }
-
-    .stock-status {
-        font-size: 0.8rem;
-        margin-top: 5px;
-        font-weight: 500;
-    }
-
-    .stock-status.in-stock {
-        color: #27ae60;
-    }
-
-    .stock-status.low-stock {
-        color: #f39c12;
-    }
-
-    .stock-status.out-of-stock {
-        color: #e74c3c;
-    }
-
-    .discount-badge {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background-color: #ff6b6b;
-        color: white;
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-size: 0.85rem;
-        font-weight: bold;
-    }
+    .shop-shell { max-width: 1280px; margin: 0 auto; }
+    .promo-bar { background: #0b6b45; color: #fff; padding: 8px 14px; font-size: 13px; font-weight: 800; text-align: center; }
+    .store-header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; padding: 18px 0 20px; border-bottom: 1px solid #f7c9cf; background: #fff; }
+    .audience-nav, .utility-nav { display: flex; align-items: center; gap: 28px; }
+    .utility-nav { justify-content: flex-end; gap: 10px; }
+    .audience-item, .utility-item { position: relative; }
+    .audience-item { padding: 12px 0; }
+    .audience-link, .utility-link, .category-link { color: #211a1d; text-decoration: none; font-weight: 800; font-size: 15px; }
+    .audience-link:hover, .utility-link:hover, .category-link:hover, .audience-link.active, .category-link.active { color: #d82736; }
+    .utility-link { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 4px; position: relative; }
+    .utility-link:hover { background: #fff1f3; }
+    .utility-icon { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .utility-text { font-size: 12px; font-weight: 900; }
+    .icon-count { position: absolute; top: -6px; right: -5px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #0b6b45; color: #fff; font-size: 11px; font-weight: 900; display: inline-flex; align-items: center; justify-content: center; }
+    .utility-dropdown { position: absolute; top: calc(100% + 10px); right: 0; width: 270px; background: #fff; border: 1px solid #f7c9cf; box-shadow: 0 14px 32px rgba(33, 26, 29, .16); padding: 22px; text-align: center; z-index: 30; opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity .15s ease, transform .15s ease, visibility .15s ease; }
+    .utility-item:hover .utility-dropdown, .utility-item:focus-within .utility-dropdown { opacity: 1; visibility: visible; transform: translateY(0); }
+    .utility-dropdown strong { display: block; color: #211a1d; font-size: 17px; margin-bottom: 12px; }
+    .utility-dropdown p { color: #6f3741; font-weight: 700; margin: 0; }
+    .dropdown-icon { color: #d82736; margin-bottom: 10px; }
+    .dropdown-icon svg { width: 38px; height: 38px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .audience-dropdown { position: absolute; top: 100%; left: 0; min-width: 230px; background: #fff; border: 1px solid #f7c9cf; border-top: 3px solid #d82736; box-shadow: 0 14px 30px rgba(33, 26, 29, .14); padding: 8px 0; z-index: 20; opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity .15s ease, transform .15s ease, visibility .15s ease; }
+    .audience-item:hover .audience-dropdown, .audience-item:focus-within .audience-dropdown { opacity: 1; visibility: visible; transform: translateY(0); }
+    .audience-dropdown a { display: block; padding: 10px 14px; color: #211a1d; text-decoration: none; font-weight: 700; white-space: nowrap; }
+    .audience-dropdown a:hover, .audience-dropdown a.active { background: #fff1f3; color: #d82736; }
+    .brand-mark { display: flex; align-items: center; gap: 10px; color: #d82736; font-size: 30px; font-weight: 900; letter-spacing: 0; text-decoration: none; white-space: nowrap; }
+    .brand-icon { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; color: #fff; background: #d82736; font-weight: 900; }
+    .category-bar { display: grid; grid-template-columns: 1fr minmax(260px, 360px); gap: 24px; align-items: center; padding: 12px 0; border-bottom: 1px solid #f7c9cf; background: #fff; }
+    .category-nav { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+    .category-link.discount { color: #d82736; }
+    .search-box { height: 42px; display: flex; align-items: center; gap: 10px; background: #fff1f3; padding: 0 10px 0 14px; color: #6f3741; font-weight: 700; }
+    .search-box input { width: 100%; border: none; outline: none; background: transparent; color: #211a1d; font-weight: 700; }
+    .search-box button { border: none; background: #d82736; color: #fff; font-weight: 900; padding: 7px 12px; border-radius: 4px; }
+    .benefit-bar { display: flex; justify-content: center; gap: 34px; flex-wrap: wrap; background: #d82736; color: #fff; padding: 9px 12px; font-weight: 800; font-size: 14px; }
+    .products-section { margin-top: 32px; }
+    .products-title { font-size: 28px; font-weight: 900; margin-bottom: 24px; color: #211a1d; }
+    .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px; }
+    .product-card { background: white; border: 1px solid #f7c9cf; border-radius: 6px; overflow: hidden; text-decoration: none; color: inherit; display: flex; flex-direction: column; transition: border-color .2s ease, box-shadow .2s ease; }
+    .product-card:hover { border-color: #e6a7b0; box-shadow: 0 10px 24px rgba(15, 23, 42, .08); }
+    .product-image-container { position: relative; width: 100%; aspect-ratio: 4 / 3; background-color: #f5f5f5; overflow: hidden; }
+    .product-image { width: 100%; height: 100%; object-fit: cover; }
+    .product-info { padding: 14px; flex-grow: 1; display: flex; flex-direction: column; }
+    .product-name { font-size: 16px; font-weight: 900; color: #211a1d; margin-bottom: 6px; line-height: 1.35; }
+    .product-brand, .product-color { font-size: 13px; color: #6f3741; margin-bottom: 6px; }
+    .product-price-container { margin-top: auto; padding-top: 10px; border-top: 1px solid #f6dde1; }
+    .product-price { font-size: 21px; font-weight: 900; color: #211a1d; }
+    .product-discount, .discount-badge { color: #d82736; font-weight: 900; }
+    .original-price { font-size: 14px; color: #8f5962; text-decoration: line-through; margin-right: 6px; }
+    .discount-badge { position: absolute; top: 10px; left: 10px; background-color: #fff; border: 1px solid #ffd166; padding: 5px 10px; font-size: 13px; }
+    .wishlist-product-btn { position: absolute; top: 10px; right: 10px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid #f7c9cf; background: #fff; color: #d82736; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 8px 18px rgba(33, 26, 29, .12); }
+    .wishlist-product-btn svg { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .wishlist-product-btn.active { background: #d82736; color: #fff; border-color: #d82736; }
+    .wishlist-product-btn.active svg { fill: currentColor; }
+    .stock-status { font-size: 13px; margin-top: 8px; font-weight: 900; color: #c98a00; }
+    .add-to-cart-btn { margin-top: 12px; padding: 10px; background-color: #d82736; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 900; }
+    .add-to-cart-btn:hover { background-color: #a91524; }
+    .no-products { padding: 42px; background: #fff7f8; color: #6f3741; font-weight: 800; text-align: center; }
+    @@media (max-width: 760px) { .store-header, .category-bar { grid-template-columns: 1fr; } .audience-nav, .utility-nav { justify-content: center; flex-wrap: wrap; } .brand-mark { justify-content: center; } .audience-dropdown { left: 50%; transform: translate(-50%, 8px); } .audience-item:hover .audience-dropdown, .audience-item:focus-within .audience-dropdown { transform: translate(-50%, 0); } }
 </style>
 
-<!-- Hero Banner sa Reklamom -->
-<div class="hero-banner">
-    <h1>🛞 DecoShoes - Pronađite Svoje Idealne Cipele</h1>
-    <p>Veliki izbor cipela sa najboljim cijenama i kvalitetom</p>
-</div>
+<div class="shop-shell">
+    <div class="promo-bar">Besplatna impregnacija obuće za registrovane kupce</div>
 
-<!-- Kategorije Section -->
-<div class="categories-section">
-    <h2 class="categories-title">📂 Filtriranje po Kategorijama</h2>
-    <div class="category-pills">
-        @if (selectedCategoryId.HasValue && selectedCategoryId > 0)
-        {
-            <a href="@Url.Action("Index", "Home")" class="clear-filter-btn">
-                ✕ Obriši Filter
-            </a>
-        }
-
-        @foreach (var category in categories)
-        {
-            var isActive = selectedCategoryId == category.CategoryID;
-            <a href="@Url.Action("Index", "Home", new { categoryId = category.CategoryID })" 
-               class="category-btn @(isActive ? "active" : "")">
-                @category.Name
-            </a>
-        }
-    </div>
-</div>
-
-<!-- Proizvodi Section -->
-<div class="products-section">
-    <h2 class="products-title">@(selectedCategory == null ? "🏆 Najpovoljniji Proizvodi" : selectedCategory.Name)</h2>
-
-    @if (Model.Count == 0)
-    {
-        <div class="no-products">
-            Nema dostupnih proizvoda u ovoj kategoriji.
-        </div>
-    }
-    else
-    {
-        <div class="products-grid">
-            @foreach (var product in Model)
+    <div class="store-header">
+        <nav class="audience-nav" aria-label="Glavne kategorije">
+            @foreach (var category in rootCategories)
             {
-                var hasDiscount = product.DiscountPercent.HasValue && product.DiscountPercent > 0;
-                var discountedPrice = hasDiscount 
-                    ? product.Price * (1 - (product.DiscountPercent.Value / 100))
-                    : product.Price;
+                var isActive = selectedRootCategoryId == category.CategoryID || selectedCategoryId == category.CategoryID;
+                var children = subcategoriesByParent.ContainsKey(category.CategoryID) ? subcategoriesByParent[category.CategoryID] : new List<Category>();
+                <div class="audience-item">
+                    <a class="audience-link @(isActive ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = category.CategoryID })">@category.Name</a>
+                    @if (children.Any())
+                    {
+                        <div class="audience-dropdown">
+                            @foreach (var child in children)
+                            {
+                                <a class="@(selectedCategoryId == child.CategoryID ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = child.CategoryID, filter = currentFilter, search = currentSearch })">@child.Name</a>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </nav>
 
-                var stockStatus = product.StockQuantity switch
+        <a class="brand-mark" href="@Url.Action("Index", "Home")"><span class="brand-icon">D</span><span>DECOSHOES</span></a>
+
+        <nav class="utility-nav" aria-label="Korisničke akcije">
+            <a class="utility-link" asp-controller="Home" asp-action="Index" title="Bosna i Hercegovina"><span class="utility-text">BiH</span></a>
+            <a class="utility-link" asp-controller="Home" asp-action="Location" title="Lokacija Jajce"><svg class="utility-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg></a>
+            @if (string.IsNullOrWhiteSpace(customerName))
+            {
+                <a class="utility-link" asp-controller="Account" asp-action="Login" title="Prijava"><svg class="utility-icon" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></a>
+                <a class="utility-link" asp-controller="Account" asp-action="Register" title="Registracija"><svg class="utility-icon" viewBox="0 0 24 24"><path d="M15 21a7 7 0 0 0-14 0"/><circle cx="8" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg></a>
+            }
+            else
+            {
+                <a class="utility-link" asp-controller="Account" asp-action="Logout" title="Odjava: @customerName"><svg class="utility-icon" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></a>
+            }
+            <div class="utility-item">
+                <a class="utility-link" asp-controller="Wishlist" asp-action="Index" title="Lista želja"><svg class="utility-icon" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>@if (wishlistCount > 0){<span class="icon-count">@wishlistCount</span>}</a>
+                <div class="utility-dropdown">
+                    @if (wishlistCount == 0)
+                    {
+                        <div class="dropdown-icon"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></div>
+                        <strong>Tvoja lista želja je prazna</strong>
+                        <p>Označi svoje omiljene predmete srcem da ih sačuvaš ovdje.</p>
+                    }
+                    else
+                    {
+                        <div class="dropdown-icon"><svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg></div>
+                        <strong>@wishlistCount proizvoda u listi želja</strong>
+                        <p>Otvori listu želja da nastaviš kupovinu.</p>
+                    }
+                </div>
+            </div>
+            <div class="utility-item">
+                <a class="utility-link" asp-controller="Cart" asp-action="Index" title="Korpa"><svg class="utility-icon" viewBox="0 0 24 24"><path d="M6 8h12l-1 13H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>@if (cartCount > 0){<span class="icon-count">@cartCount</span>}</a>
+                <div class="utility-dropdown">
+                    @if (cartCount == 0)
+                    {
+                        <div class="dropdown-icon"><svg viewBox="0 0 24 24"><path d="M6 8h12l-1 13H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg></div>
+                        <strong>Tvoja korpa je prazna</strong>
+                        <p>Dodaj proizvod u korpu i on će se pojaviti ovdje.</p>
+                    }
+                    else
+                    {
+                        <div class="dropdown-icon"><svg viewBox="0 0 24 24"><path d="M6 8h12l-1 13H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg></div>
+                        <strong>@cartCount proizvoda u korpi</strong>
+                        <p>Otvori korpu da završiš narudžbu.</p>
+                    }
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <div class="category-bar">
+        <nav class="category-nav" aria-label="Filteri proizvoda">
+            <a class="category-link @(currentFilter == null ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = activeCategoryRouteId, search = currentSearch })">Sve</a>
+            <a class="category-link @(currentFilter == "new" ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = activeCategoryRouteId, filter = "new", search = currentSearch })">Novo</a>
+            <a class="category-link discount @(currentFilter == "discounted" ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = activeCategoryRouteId, filter = "discounted", search = currentSearch })">Sniženo %</a>
+        </nav>
+
+        <form class="search-box" asp-controller="Home" asp-action="Index" method="get">
+            @if (activeCategoryRouteId.HasValue) { <input type="hidden" name="categoryId" value="@activeCategoryRouteId.Value" /> }
+            @if (!string.IsNullOrWhiteSpace(currentFilter)) { <input type="hidden" name="filter" value="@currentFilter" /> }
+            <svg class="utility-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="search" name="search" value="@currentSearch" placeholder="Pretraži proizvode" />
+            <button type="submit">Traži</button>
+        </form>
+    </div>
+
+    <div class="benefit-bar">
+        <span>Besplatna dostava za narudžbe nad 29 KM</span>
+        <span>Mogućnost povrata do 60 dana</span>
+        <span>Dostava u 2 - 4 radna dana</span>
+    </div>
+
+    <section class="products-section">
+        <h2 class="products-title">
+            @if (currentFilter == "new") { <span>Novo - @allProductsLabel</span> }
+            else if (currentFilter == "discounted") { <span>Sniženo - @allProductsLabel</span> }
+            else { <span>@allProductsLabel</span> }
+        </h2>
+
+        @if (Model.Count == 0)
+        {
+            <div class="no-products">Nema dostupnih proizvoda za odabrani filter.</div>
+        }
+        else
+        {
+            <div class="products-grid">
+                @foreach (var product in Model)
                 {
-                    null => "Dostupno",
-                    0 => "Nema na Zalihi",
-                    > 0 and <= 5 => "Malo na Zalihi",
-                    _ => "Na Zalihi"
-                };
+                    var hasDiscount = product.DiscountPercent.HasValue && product.DiscountPercent > 0;
+                    var discountedPrice = hasDiscount ? product.Price * (1 - (product.DiscountPercent.Value / 100)) : product.Price;
+                    var isInWishlist = wishlistIds.Contains(product.ProductID);
 
-                var stockClass = product.StockQuantity switch
-                {
-                    0 => "out-of-stock",
-                    > 0 and <= 5 => "low-stock",
-                    _ => "in-stock"
-                };
+                    <a href="@Url.Action("Details", "Products", new { id = product.ProductID })" class="product-card" title="@product.Name">
+                        <div class="product-image-container">
+                            @if (!string.IsNullOrEmpty(product.ImageUrl))
+                            {
+                                <img src="@product.ImageUrl" alt="@product.Name" class="product-image">
+                            }
+                            else
+                            {
+                                <div style="width: 100%; height: 100%; background-color: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #777; font-weight: 700;">Slika nije dostupna</div>
+                            }
 
-                <a href="@Url.Action("Details", "Products", new { id = product.ProductID })" class="product-card" title="@product.Name">
-                    <div class="product-image-container">
-                        @if (!string.IsNullOrEmpty(product.ImageUrl))
-                        {
-                            <img src="@product.ImageUrl" alt="@product.Name" class="product-image">
-                        }
-                        else
-                        {
-                            <div style="width: 100%; height: 100%; background-color: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #999;">
-                                Slika nije dostupna
-                            </div>
-                        }
+                            @if (hasDiscount)
+                            {
+                                <div class="discount-badge">-@product.DiscountPercent.Value.ToString("F0")%</div>
+                            }
 
-                        @if (hasDiscount)
-                        {
-                            <div class="discount-badge">
-                                -@product.DiscountPercent.Value.ToString("F0")%
-                            </div>
-                        }
-                    </div>
+                            <button class="wishlist-product-btn @(isInWishlist ? "active" : "")" onclick="addToWishlist(@product.ProductID, event)" type="button" title="Dodaj u listu želja">
+                                <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>
+                            </button>
+                        </div>
 
-                    <div class="product-info">
-                        <div class="product-name">@product.Name</div>
+                        <div class="product-info">
+                            <div class="product-name">@product.Name</div>
 
-                        @if (!string.IsNullOrEmpty(product.Brand))
-                        {
-                            <div class="product-brand">👟 @product.Brand</div>
-                        }
+                            @if (!string.IsNullOrEmpty(product.Brand))
+                            {
+                                <div class="product-brand">@product.Brand</div>
+                            }
 
-                        @if (product.Category != null)
-                        {
-                            <div class="product-category">@product.Category.Name</div>
-                        }
+                            @if (!string.IsNullOrEmpty(product.Color))
+                            {
+                                <div class="product-color">Boja: <strong>@product.Color</strong></div>
+                            }
 
-                        @if (!string.IsNullOrEmpty(product.Color))
-                        {
-                            <div style="font-size: 0.85rem; color: #666; margin-bottom: 8px;">
-                                Boja: <strong>@product.Color</strong>
-                            </div>
-                        }
-
-                        <div class="product-price-container">
-                            <div>
+                            <div class="product-price-container">
                                 @if (hasDiscount)
                                 {
                                     <span class="original-price">@product.Price.ToString("F2") KM</span>
@@ -354,44 +244,39 @@
                                 }
                                 <div class="product-price">@discountedPrice.ToString("F2") KM</div>
                             </div>
-                        </div>
 
-                        <div class="stock-status @stockClass">
-                            @if (product.StockQuantity.HasValue)
+                            @if (product.StockQuantity.HasValue && product.StockQuantity > 0 && product.StockQuantity <= 3)
                             {
-                                <span>@stockStatus (@product.StockQuantity kom.)</span>
+                                <div class="stock-status">Još @product.StockQuantity kom. na zalihi</div>
+                            }
+
+                            @if (product.StockQuantity != 0)
+                            {
+                                <button class="add-to-cart-btn" onclick="addToCart(@product.ProductID, event)" type="button">Dodaj u korpu</button>
                             }
                             else
                             {
-                                <span>@stockStatus</span>
+                                <button class="add-to-cart-btn" style="background-color: #8f5962; cursor: not-allowed;" disabled>Nema na zalihi</button>
                             }
                         </div>
-
-                        @if (product.StockQuantity != 0)
-                        {
-                            <button class="add-to-cart-btn" onclick="addToCart(@product.ProductID, event)" type="button">
-                                🛒 Dodaj u Korpu
-                            </button>
-                        }
-                        else
-                        {
-                            <button class="add-to-cart-btn" style="background-color: #999; cursor: not-allowed;" disabled>
-                                ❌ Nema na Zalihi
-                            </button>
-                        }
-                    </div>
-                </a>
-            }
-        </div>
-    }
+                    </a>
+                }
+            </div>
+        }
+    </section>
 </div>
 
 <script>
     function addToCart(productId, event) {
         event.preventDefault();
         event.stopPropagation();
-
-        // Redirekcija na detalje proizvoda gdje korisnik može odabrati veličinu
         window.location.href = '@Url.Action("Details", "Products")' + '?id=' + productId;
+    }
+
+    function addToWishlist(productId, event) {
+        event.preventDefault();
+        event.stopPropagation();
+        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = '@Url.Action("Add", "Wishlist")' + '?productId=' + productId + '&returnUrl=' + returnUrl;
     }
 </script>

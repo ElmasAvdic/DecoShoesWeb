@@ -1,33 +1,66 @@
-﻿@model DecoShoesWeb.Models.Category
+@model DecoShoesWeb.Models.Category
 
 @{
-    ViewData["Title"] = "Delete";
+    ViewData["Title"] = "Obri�i kategoriju";
+    var productCount = (int)(ViewData["ProductCount"] ?? 0);
+    var subcategoryCount = (int)(ViewData["SubcategoryCount"] ?? 0);
 }
 
-<h1>Delete</h1>
+<h1>Obri�i kategoriju</h1>
 
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>Category</h4>
-    <hr />
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<div class="delete-category-panel">
+    <h4>@Model.Name</h4>
+    <p class="text-muted">@(Model.ParentCategory?.Name == null ? "Glavna kategorija" : $"Podkategorija u: {Model.ParentCategory.Name}")</p>
+
     <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Description)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Description)
-        </dd>
+        <dt class="col-sm-3">Naziv za link</dt>
+        <dd class="col-sm-9">@Model.Slug</dd>
+
+        <dt class="col-sm-3">Podkategorije</dt>
+        <dd class="col-sm-9">@subcategoryCount</dd>
+
+        <dt class="col-sm-3">Proizvodi</dt>
+        <dd class="col-sm-9">@productCount</dd>
     </dl>
-    
+
+    @if (productCount > 0)
+    {
+        <div class="alert alert-warning">
+            Ovu kategoriju ne mo�e� obrisati dok ima proizvode. Prvo uredi proizvode i prebaci ih u drugu kategoriju.
+        </div>
+    }
+    else if (subcategoryCount > 0)
+    {
+        <div class="alert alert-warning">
+            Brisanjem ove glavne kategorije obrisat �e se i njene prazne podkategorije.
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger">
+            Ova kategorija �e biti trajno obrisana.
+        </div>
+    }
+
     <form asp-action="Delete">
         <input type="hidden" asp-for="CategoryID" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
-        <a asp-action="Index">Back to List</a>
+        <button type="submit" class="btn btn-danger" @(productCount > 0 ? "disabled" : "")>Obri�i</button>
+        <a asp-action="Index" class="btn btn-secondary">Nazad</a>
     </form>
 </div>
+
+<style>
+    .delete-category-panel {
+        max-width: 720px;
+        background: #fff;
+        border: 1px solid #f0d3d8;
+        border-left: 6px solid #d82736;
+        border-radius: 6px;
+        padding: 22px;
+    }
+</style>

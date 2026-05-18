@@ -1,4 +1,4 @@
-Ôªø@model DecoShoesWeb.Models.Product
+@model DecoShoesWeb.Models.Product
 
 @{
     ViewData["Title"] = "Details";
@@ -6,7 +6,7 @@
 
 <h1>@Model.Name</h1>
 
-<!-- Prika≈æi TempData poruku ako postoji -->
+<!-- Prikaûi TempData poruku ako postoji -->
 @if (TempData["Message"] != null)
 {
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -56,7 +56,7 @@
 
             @if (Model.HasSizes)
             {
-                <h5>Izaberi veliƒçinu</h5>
+                <h5>Izaberi veliËinu</h5>
 
                 <div class="size-grid">
                     @foreach (var size in Model.ProductSizes)
@@ -83,11 +83,11 @@
             }
 
             <div class="quantity-box">
-                <label>Koliƒçina</label>
+                <label>KoliËina</label>
                 <input type="number" name="quantity" value="1" min="1" class="form-control" id="quantityInput" onchange="validateQuantity()" />
             </div>
 
-            <button type="submit" class="btn btn-dark add-cart-btn" id="submitBtn">
+            <button type="submit" class="btn btn-danger add-cart-btn" id="submitBtn">
                 Dodaj u korpu
             </button>
         </form>
@@ -137,7 +137,7 @@
 
     .old-price {
         text-decoration: line-through;
-        color: gray;
+        color: #8f5962;
         margin-bottom: 2px;
     }
 
@@ -165,7 +165,7 @@
     }
 
     .size-option input:checked + span {
-        border: 2px solid black;
+        border: 2px solid #d82736;
     }
 
     .size-option.disabled span {
@@ -225,7 +225,7 @@
         messageDiv.style.display = 'none';
 
         if (quantity < 1) {
-            messageText.textContent = 'Koliƒçina mora biti najmanje 1!';
+            messageText.textContent = 'KoliËina mora biti najmanje 1!';
             messageDiv.style.display = 'block';
             return false;
         }
@@ -243,7 +243,7 @@
         }
 
         if (!selectedSize) {
-            messageText.textContent = 'Molimo izaberite veliƒçinu!';
+            messageText.textContent = 'Molimo izaberite veliËinu!';
             messageDiv.style.display = 'block';
             return false;
         }
@@ -253,7 +253,7 @@
         const size = selectedSize.getAttribute('data-size');
 
         if (quantity > stock) {
-            messageText.textContent = `Nema dovoljno dostupnih komada za veliƒçinu ${size}. Dostupno je: ${stock}`;
+            messageText.textContent = `Nema dovoljno dostupnih komada za veliËinu ${size}. Dostupno je: ${stock}`;
             messageDiv.style.display = 'block';
             return false;
         }
@@ -281,7 +281,7 @@
                 submitBtn.style.opacity = '0.5';
                 submitBtn.style.cursor = 'not-allowed';
             } else if (quantity < 1) {
-                messageText.textContent = 'Koliƒçina mora biti najmanje 1!';
+                messageText.textContent = 'KoliËina mora biti najmanje 1!';
                 messageDiv.style.display = 'block';
                 submitBtn.disabled = true;
                 submitBtn.style.opacity = '0.5';
@@ -296,13 +296,13 @@
             const size = selectedSize.getAttribute('data-size');
 
             if (quantity > stock) {
-                messageText.textContent = `Nema dovoljno dostupnih komada za veliƒçinu ${size}. Dostupno je: ${stock}`;
+                messageText.textContent = `Nema dovoljno dostupnih komada za veliËinu ${size}. Dostupno je: ${stock}`;
                 messageDiv.style.display = 'block';
                 submitBtn.disabled = true;
                 submitBtn.style.opacity = '0.5';
                 submitBtn.style.cursor = 'not-allowed';
             } else if (quantity < 1) {
-                messageText.textContent = 'Koliƒçina mora biti najmanje 1!';
+                messageText.textContent = 'KoliËina mora biti najmanje 1!';
                 messageDiv.style.display = 'block';
                 submitBtn.disabled = true;
                 submitBtn.style.opacity = '0.5';

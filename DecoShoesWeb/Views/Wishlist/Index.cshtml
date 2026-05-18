@@ -1,0 +1,77 @@
+@model List<DecoShoesWeb.Models.Product>
+
+@{
+    ViewData["Title"] = "Lista želja";
+}
+
+<div class="wishlist-page">
+    <h1>Lista želja</h1>
+
+    @if (!Model.Any())
+    {
+        <div class="simple-panel">
+            <div class="empty-icon">♡</div>
+            <h2>Tvoja lista želja je prazna</h2>
+            <p class="text-muted mb-0">Označi omiljene proizvode srcem i sačuvaj ih ovdje.</p>
+        </div>
+    }
+    else
+    {
+        <div class="wishlist-grid">
+            @foreach (var product in Model)
+            {
+                <div class="wishlist-card">
+                    <strong>@product.Name</strong>
+                    <span>@product.Price.ToString("0.00") KM</span>
+                    <div class="wishlist-actions">
+                        <a asp-controller="Products" asp-action="Details" asp-route-id="@product.ProductID" class="btn btn-sm btn-outline-secondary">Detalji</a>
+                        <a asp-action="Remove" asp-route-productId="@product.ProductID" class="btn btn-sm btn-danger">Ukloni</a>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .wishlist-page h1 {
+        margin-bottom: 20px;
+    }
+
+    .simple-panel {
+        max-width: 720px;
+        border: 1px solid #f7c9cf;
+        border-radius: 6px;
+        padding: 28px;
+        background: #fff;
+        text-align: center;
+    }
+
+    .empty-icon {
+        color: #d82736;
+        font-size: 42px;
+        line-height: 1;
+        margin-bottom: 10px;
+    }
+
+    .wishlist-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 16px;
+    }
+
+    .wishlist-card {
+        border: 1px solid #f7c9cf;
+        border-radius: 6px;
+        padding: 16px;
+        background: #fff;
+        display: grid;
+        gap: 10px;
+    }
+
+    .wishlist-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+</style>

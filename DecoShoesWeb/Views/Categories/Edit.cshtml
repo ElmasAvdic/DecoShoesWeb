@@ -1,37 +1,63 @@
-﻿@model DecoShoesWeb.Models.Category
+@model DecoShoesWeb.Models.Category
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Uredi kategoriju";
+    var returnUrl = (string)(ViewData["ReturnUrl"] ?? Url.Action("Index", "Categories")!);
 }
 
-<h1>Edit</h1>
+<h1>Uredi kategoriju</h1>
 
-<h4>Category</h4>
-<hr />
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-5">
         <form asp-action="Edit">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <input type="hidden" asp-for="CategoryID" />
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
+
+            <div class="form-group mb-3">
+                <label asp-for="Name" class="control-label">Naziv</label>
                 <input asp-for="Name" class="form-control" />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
+
+            <div class="form-group mb-3">
+                <label asp-for="ParentCategoryID" class="control-label">Roditeljska kategorija</label>
+                <select asp-for="ParentCategoryID" class="form-control" asp-items="ViewBag.ParentCategoryID">
+                    <option value="">Glavna kategorija</option>
+                </select>
+                <span asp-validation-for="ParentCategoryID" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Slug" class="control-label">Naziv za link</label>
+                <input asp-for="Slug" class="form-control" />
+                <span asp-validation-for="Slug" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="DisplayOrder" class="control-label">Redoslijed</label>
+                <input asp-for="DisplayOrder" class="form-control" />
+                <span asp-validation-for="DisplayOrder" class="text-danger"></span>
+            </div>
+
+            <div class="form-group form-check mb-3">
+                <label class="form-check-label">
+                    <input class="form-check-input" asp-for="IsActive" /> Aktivna
+                </label>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Description" class="control-label">Opis</label>
                 <input asp-for="Description" class="form-control" />
                 <span asp-validation-for="Description" class="text-danger"></span>
             </div>
+
             <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
+                <input type="submit" value="Sačuvaj" class="btn btn-primary" />
+                <a href="@returnUrl" class="btn btn-outline-secondary">Nazad</a>
             </div>
         </form>
     </div>
-</div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
 </div>
 
 @section Scripts {

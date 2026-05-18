@@ -1,30 +1,73 @@
-﻿@model DecoShoesWeb.Models.Category
+@model DecoShoesWeb.Models.Category
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Detalji kategorije";
+    var returnUrl = (string)(ViewData["ReturnUrl"] ?? Url.Action("Index", "Categories")!);
+    var currentUrl = Context.Request.Path + Context.Request.QueryString;
 }
 
-<h1>Details</h1>
+<h1>Detalji kategorije</h1>
 
-<div>
-    <h4>Category</h4>
-    <hr />
+<div class="category-details-card">
     <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Description)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Description)
+        <dt class="col-sm-2">Naziv</dt>
+        <dd class="col-sm-10">@Model.Name</dd>
+
+        <dt class="col-sm-2">Roditelj</dt>
+        <dd class="col-sm-10">@(Model.ParentCategory?.Name ?? "Glavna kategorija")</dd>
+
+        <dt class="col-sm-2">Naziv za link</dt>
+        <dd class="col-sm-10">@Model.Slug</dd>
+
+        <dt class="col-sm-2">Redoslijed</dt>
+        <dd class="col-sm-10">@Model.DisplayOrder</dd>
+
+        <dt class="col-sm-2">Aktivna</dt>
+        <dd class="col-sm-10">@(Model.IsActive ? "Da" : "Ne")</dd>
+
+        <dt class="col-sm-2">Opis</dt>
+        <dd class="col-sm-10">@Model.Description</dd>
+
+        <dt class="col-sm-2">Podkategorije</dt>
+        <dd class="col-sm-10">
+            @if (Model.Subcategories.Any())
+            {
+                @string.Join(", ", Model.Subcategories.OrderBy(c => c.DisplayOrder).ThenBy(c => c.Name).Select(c => c.Name))
+            }
+            else
+            {
+                <span class="text-muted">Nema podkategorija</span>
+            }
         </dd>
     </dl>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.CategoryID">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+
+<div class="category-action-row">
+    <a asp-action="Edit" asp-route-id="@Model.CategoryID" asp-route-returnUrl="@currentUrl" class="btn btn-primary">Uredi</a>
+    <a href="@returnUrl" class="btn btn-outline-secondary">Nazad</a>
 </div>
+
+<style>
+    .category-details-card {
+        max-width: 900px;
+        border: 1px solid #f7c9cf;
+        border-radius: 6px;
+        padding: 20px;
+        background: #fff;
+        margin-bottom: 18px;
+    }
+
+    .category-details-card dt {
+        color: #6f3741;
+    }
+
+    .category-details-card dd {
+        font-weight: 700;
+    }
+
+    .category-action-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+</style>
