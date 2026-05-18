@@ -1,12 +1,12 @@
 @model DecoShoesWeb.Models.Category
 
 @{
-    ViewData["Title"] = "Obri�i kategoriju";
+    ViewData["Title"] = "Obrši kategoriju";
     var productCount = (int)(ViewData["ProductCount"] ?? 0);
     var subcategoryCount = (int)(ViewData["SubcategoryCount"] ?? 0);
 }
 
-<h1>Obri�i kategoriju</h1>
+<h1>Obriši kategoriju</h1>
 
 @if (TempData["ErrorMessage"] != null)
 {
@@ -31,25 +31,25 @@
     @if (productCount > 0)
     {
         <div class="alert alert-warning">
-            Ovu kategoriju ne mo�e� obrisati dok ima proizvode. Prvo uredi proizvode i prebaci ih u drugu kategoriju.
+            Ovu kategoriju ne možeš obrisati dok ima proizvode. Prvo uredi proizvode i prebaci ih u drugu kategoriju.
         </div>
     }
     else if (subcategoryCount > 0)
     {
         <div class="alert alert-warning">
-            Brisanjem ove glavne kategorije obrisat �e se i njene prazne podkategorije.
+            Brisanjem ove glavne kategorije obrisat će se i njene prazne podkategorije.
         </div>
     }
     else
     {
         <div class="alert alert-danger">
-            Ova kategorija �e biti trajno obrisana.
+            Ova kategorija će biti trajno obrisana.
         </div>
     }
 
     <form asp-action="Delete">
         <input type="hidden" asp-for="CategoryID" />
-        <button type="submit" class="btn btn-danger" @(productCount > 0 ? "disabled" : "")>Obri�i</button>
+        <button type="submit" class="btn btn-danger" @(productCount > 0 ? "disabled" : "")>Obriši</button>
         <a asp-action="Index" class="btn btn-secondary">Nazad</a>
     </form>
 </div>

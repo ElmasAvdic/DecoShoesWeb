@@ -69,6 +69,28 @@ namespace DecoShoesWeb.Controllers
 
             if (ModelState.IsValid)
             {
+                // Ensure DisplayOrder is set and shift others if necessary (grouped by ParentCategoryID)
+                if (category.DisplayOrder <= 0)
+                {
+                    var maxOrder = await _context.Categories
+                        .Where(c => c.ParentCategoryID == category.ParentCategoryID)
+                        .MaxAsync(c => (int?)c.DisplayOrder) ?? 0;
+                    category.DisplayOrder = maxOrder + 1;
+                }
+                else
+                {
+                    // Shift existing categories with same parent that are >= this order
+                    var toShift = await _context.Categories
+                        .Where(c => c.ParentCategoryID == category.ParentCategoryID && c.DisplayOrder >= category.DisplayOrder)
+                        .ToListAsync();
+
+                    foreach (var c in toShift)
+                    {
+                        c.DisplayOrder += 1;
+                        _context.Update(c);
+                    }
+                }
+
                 _context.Add(category);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -121,6 +143,75 @@ namespace DecoShoesWeb.Controllers
             {
                 try
                 {
+                    // Handle reordering when DisplayOrder or ParentCategoryID changed
+                    var existing = await _context.Categories.AsNoTracking()
+                        .FirstOrDefaultAsync(c => c.CategoryID == category.CategoryID);
+
+                    if (existing == null)
+                    {
+                        return NotFound();
+                    }
+
+                    var oldParent = existing.ParentCategoryID;
+                    var oldOrder = existing.DisplayOrder;
+                    var newParent = category.ParentCategoryID;
+                    var newOrder = category.DisplayOrder <= 0 ? oldOrder : category.DisplayOrder;
+
+                    // If parent changed, remove gap from old parent
+                    if (oldParent != newParent)
+                    {
+                        var siblingsOld = await _context.Categories
+                            .Where(c => c.ParentCategoryID == oldParent && c.DisplayOrder > oldOrder && c.CategoryID != category.CategoryID)
+                            .ToListAsync();
+
+                        foreach (var s in siblingsOld)
+                        {
+                            s.DisplayOrder -= 1;
+                            _context.Update(s);
+                        }
+
+                        // Shift in new parent for positions >= newOrder
+                        var siblingsNew = await _context.Categories
+                            .Where(c => c.ParentCategoryID == newParent && c.DisplayOrder >= newOrder)
+                            .ToListAsync();
+
+                        foreach (var s in siblingsNew)
+                        {
+                            s.DisplayOrder += 1;
+                            _context.Update(s);
+                        }
+                    }
+                    else if (oldOrder != newOrder)
+                    {
+                        if (newOrder > oldOrder)
+                        {
+                            // Shift down items between oldOrder+1 .. newOrder (decrement)
+                            var toDecrement = await _context.Categories
+                                .Where(c => c.ParentCategoryID == oldParent && c.DisplayOrder > oldOrder && c.DisplayOrder <= newOrder && c.CategoryID != category.CategoryID)
+                                .ToListAsync();
+
+                            foreach (var s in toDecrement)
+                            {
+                                s.DisplayOrder -= 1;
+                                _context.Update(s);
+                            }
+                        }
+                        else
+                        {
+                            // newOrder < oldOrder -> increment items between newOrder .. oldOrder-1
+                            var toIncrement = await _context.Categories
+                                .Where(c => c.ParentCategoryID == oldParent && c.DisplayOrder >= newOrder && c.DisplayOrder < oldOrder && c.CategoryID != category.CategoryID)
+                                .ToListAsync();
+
+                            foreach (var s in toIncrement)
+                            {
+                                s.DisplayOrder += 1;
+                                _context.Update(s);
+                            }
+                        }
+                    }
+
+                    // Finally update the category itself
                     _context.Update(category);
                     await _context.SaveChangesAsync();
                 }
@@ -197,7 +288,24 @@ namespace DecoShoesWeb.Controllers
                 _context.Categories.RemoveRange(category.Subcategories);
             }
 
+            // Remember parent and order to fix sibling DisplayOrder
+            var parentId = category.ParentCategoryID;
+            var removedOrder = category.DisplayOrder;
+
             _context.Categories.Remove(category);
+            await _context.SaveChangesAsync();
+
+            // Decrement display order of siblings that were after the removed category
+            var siblingsToFix = await _context.Categories
+                .Where(c => c.ParentCategoryID == parentId && c.DisplayOrder > removedOrder)
+                .ToListAsync();
+
+            foreach (var s in siblingsToFix)
+            {
+                s.DisplayOrder -= 1;
+                _context.Update(s);
+            }
+
             await _context.SaveChangesAsync();
 
             TempData["SuccessMessage"] = "Kategorija je obrisana.";
