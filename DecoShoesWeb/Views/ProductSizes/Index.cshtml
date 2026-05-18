@@ -1,47 +1,193 @@
 ﻿@model IEnumerable<DecoShoesWeb.Models.ProductSize>
 
 @{
-    ViewData["Title"] = "Veličine Proizvoda";
+    ViewData["Title"] = "Lager po brojevima";
+    var currentSearch = ViewData["CurrentSearch"] as string ?? string.Empty;
+    var totalQuantity = Model.Sum(item => item.StockQuantity);
 }
 
-<h1>Veličine Proizvoda</h1>
+<div class="admin-page-header">
+    <div>
+        <h1>Lager po brojevima</h1>
+        <p>Pregled zalihe po brojevima, proizvodima i kategorijama.</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary">Dodaj novi broj</a>
+</div>
 
-<p>
-    <a asp-action="Create">Dodaj Novu</a>
-</p>
-<table class="table">
+<div class="size-stats-row">
+    <div class="size-stat-card">
+        <span>Ukupno stavki</span>
+        <strong>@Model.Count()</strong>
+    </div>
+    <div class="size-stat-card">
+        <span>Ukupna zaliha</span>
+        <strong>@totalQuantity</strong>
+    </div>
+</div>
+
+<form asp-action="Index" method="get" class="size-filter-bar">
+    <div class="filter-field">
+        <label for="categoryId">Kategorija</label>
+        <select id="categoryId" name="categoryId" class="form-select" asp-items="ViewBag.CategoryFilterID"></select>
+    </div>
+
+    <div class="filter-field">
+        <label for="productId">Proizvod</label>
+        <select id="productId" name="productId" class="form-select" asp-items="ViewBag.ProductFilterID"></select>
+    </div>
+
+    <div class="filter-field">
+        <label for="search">Pretraga</label>
+        <input id="search" name="search" value="@currentSearch" class="form-control" placeholder="Naziv, kategorija, brend, boja ili broj..." />
+    </div>
+
+    <div class="filter-actions">
+        <button type="submit" class="btn btn-primary">Prikaži</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Očisti</a>
+    </div>
+</form>
+
+<table class="table align-middle admin-size-table mt-4">
     <thead>
         <tr>
-            <th>
-                Proizvod
-            </th>
-            <th>
-                Veličina
-            </th>
-            <th>
-                Količina u Lageru
-            </th>
+            <th>Proizvod</th>
+            <th>Kategorija</th>
+            <th>Broj</th>
+            <th>Količina</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
+@foreach (var item in Model)
+{
+    var categoryName = item.Product?.Category?.ParentCategory != null
+        ? $"{item.Product.Category.ParentCategory.Name} > {item.Product.Category.Name}"
+        : item.Product?.Category?.Name ?? "-";
+
         <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Product.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Size)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.StockQuantity)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.ProductSizeID">Uredi</a> |
-                <a asp-action="Details" asp-route-id="@item.ProductSizeID">Detalji</a> |
-                <a asp-action="Delete" asp-route-id="@item.ProductSizeID">Obriši</a>
+            <td><strong>@(item.Product?.Name ?? "-")</strong></td>
+            <td>@categoryName</td>
+            <td><span class="size-pill">@item.Size</span></td>
+            <td>@item.StockQuantity</td>
+            <td class="text-end admin-actions">
+                <a asp-action="Edit" asp-route-id="@item.ProductSizeID" class="btn btn-sm btn-outline-secondary">Uredi</a>
+                <a asp-action="Details" asp-route-id="@item.ProductSizeID" class="btn btn-sm btn-outline-secondary">Detalji</a>
+                <a asp-action="Delete" asp-route-id="@item.ProductSizeID" class="btn btn-sm btn-danger">Obriši</a>
             </td>
         </tr>
 }
     </tbody>
 </table>
+
+@if (!Model.Any())
+{
+    <div class="empty-state">Nema brojeva za izabrani filter ili pretragu.</div>
+}
+
+<style>
+    .admin-page-header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 18px;
+    }
+
+    .admin-page-header h1 {
+        margin-bottom: 4px;
+    }
+
+    .admin-page-header p {
+        margin: 0;
+        color: #697386;
+    }
+
+    .size-stats-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+        max-width: 560px;
+    }
+
+    .size-stat-card {
+        border: 1px solid #f7c9cf;
+        border-radius: 6px;
+        background: #fff;
+        padding: 14px 16px;
+    }
+
+    .size-stat-card span {
+        display: block;
+        color: #697386;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .size-stat-card strong {
+        font-size: 24px;
+        color: #111827;
+    }
+
+    .size-filter-bar {
+        display: grid;
+        grid-template-columns: minmax(220px, 280px) minmax(220px, 280px) minmax(240px, 1fr) auto;
+        gap: 14px;
+        align-items: end;
+        padding: 16px;
+        border: 1px solid #f7c9cf;
+        border-radius: 6px;
+        background: #fff1f3;
+    }
+
+    .filter-field label {
+        display: block;
+        font-weight: 800;
+        margin-bottom: 6px;
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 8px;
+        white-space: nowrap;
+    }
+
+    .admin-size-table thead { background: #d82736; color: #fff; }
+    .admin-size-table tbody tr:hover { background: #fff1f3; }
+    .admin-size-table .btn-danger { background: #d82736; border-color: #d82736; }
+    .admin-actions { white-space: nowrap; }
+
+    .size-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        padding: 5px 10px;
+        border: 1px solid #f7c9cf;
+        border-radius: 999px;
+        font-weight: 900;
+        background: #fff;
+    }
+
+    .empty-state {
+        padding: 18px;
+        border: 1px solid #f7c9cf;
+        border-radius: 6px;
+        background: #fff1f3;
+        font-weight: 800;
+        color: #6f3741;
+    }
+
+    @@media (max-width: 950px) {
+        .size-stats-row,
+        .size-filter-bar {
+            grid-template-columns: 1fr;
+            max-width: none;
+        }
+
+        .admin-page-header {
+            align-items: start;
+            flex-direction: column;
+        }
+    }
+</style>

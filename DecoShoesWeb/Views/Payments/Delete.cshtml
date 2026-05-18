@@ -1,51 +1,5 @@
 ﻿@model DecoShoesWeb.Models.Payment
-
-@{
-    ViewData["Title"] = "Delete";
-}
-
-<h1>Delete</h1>
-
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>Payment</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Order)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Order.OrderID)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PaymentDate)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PaymentDate)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Amount)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Amount)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PaymentMethod)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PaymentMethod)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PaymentStatus)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PaymentStatus)
-        </dd>
-    </dl>
-    
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="PaymentID" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
-        <a asp-action="Index">Back to List</a>
-    </form>
-</div>
+@{ ViewData["Title"] = "Obriši plaćanje"; }
+<h1>Obriši plaćanje</h1>
+<div class="delete-card"><h2>Da li želiš obrisati ovo plaćanje?</h2><p>Ovo briše samo evidenciju plaćanja, ne briše narudžbu.</p><div class="delete-summary"><div><span>Narudžba</span><strong>#@Model.OrderID</strong></div><div><span>Iznos</span><strong>@Model.Amount.ToString("0.00") KM</strong></div><div><span>Status</span><strong>@(Model.PaymentStatus ?? "-")</strong></div></div><form asp-action="Delete" class="delete-actions"><input type="hidden" asp-for="PaymentID" /><button type="submit" class="btn btn-danger">Obriši</button><a asp-action="Index" class="btn btn-outline-secondary">Nazad na plaćanja</a></form></div>
+<style>.delete-card{max-width:850px;border:1px solid #f7c9cf;border-radius:6px;padding:20px;background:#fff}.delete-card h2{font-size:22px;font-weight:900}.delete-card p{color:#697386}.delete-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}.delete-summary div{background:#fff1f3;border-radius:6px;padding:14px}.delete-summary span{display:block;color:#697386;font-weight:700}.delete-actions{display:flex;gap:10px;flex-wrap:wrap}@@media(max-width:700px){.delete-summary{grid-template-columns:1fr}}</style>

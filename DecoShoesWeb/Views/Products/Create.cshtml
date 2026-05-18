@@ -1,78 +1,282 @@
-﻿@model DecoShoesWeb.Models.Product
+@model DecoShoesWeb.Models.Product
+@using System.Text.Json
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Dodaj proizvod";
+    var categorySizeGroups = ViewData["CategorySizeGroups"] as Dictionary<int, string> ?? new Dictionary<int, string>();
 }
 
-<h1>Create</h1>
+<h1>Dodaj proizvod</h1>
 
-<h4>Product</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="CategoryID" class="control-label">Podkategorija</label>
-                <select asp-for="CategoryID" class="form-control" asp-items="ViewBag.CategoryID"></select>
-            </div>
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Brand" class="control-label"></label>
-                <input asp-for="Brand" class="form-control" />
-                <span asp-validation-for="Brand" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Color" class="control-label"></label>
-                <input asp-for="Color" class="form-control" />
-                <span asp-validation-for="Color" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Price" class="control-label"></label>
-                <input asp-for="Price" class="form-control" />
-                <span asp-validation-for="Price" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="StockQuantity" class="control-label"></label>
-                <input asp-for="StockQuantity" class="form-control" />
-                <span asp-validation-for="StockQuantity" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="ImageUrl" class="control-label"></label>
-                <input asp-for="ImageUrl" class="form-control" />
-                <span asp-validation-for="ImageUrl" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="DiscountPercent" class="control-label">Popust (%)</label>
-                <input asp-for="DiscountPercent" class="form-control" placeholder="10" />
-                <span asp-validation-for="DiscountPercent" class="text-danger"></span>
-            </div>
-            <input type="hidden" asp-for="CreatedAt" />
-            <div class="form-group form-check">
-                <label class="form-check-label">
-                <input class="form-check-input" asp-for="HasSizes" id="HasSizesToggle" /> Proizvod ima brojeve/veliÄŤine
-                </label>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
+<form asp-action="Create" class="product-create-layout" enctype="multipart/form-data">
+    <div class="product-form-card">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="form-group mb-3">
+            <label asp-for="CategoryID" class="control-label">Podkategorija</label>
+            <select asp-for="CategoryID" class="form-control" asp-items="ViewBag.CategoryID"></select>
+            <span asp-validation-for="CategoryID" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="Name" class="control-label">Naziv</label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="Brand" class="control-label">Brend</label>
+            <input asp-for="Brand" class="form-control" />
+            <span asp-validation-for="Brand" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="Color" class="control-label">Boja</label>
+            <input asp-for="Color" class="form-control" />
+            <span asp-validation-for="Color" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="Price" class="control-label">Cijena</label>
+            <input name="Price" id="Price" type="number" step="0.01" min="0" class="form-control" placeholder="npr. 69.00" />
+            <span asp-validation-for="Price" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3" id="stockQuantityGroup">
+            <label asp-for="StockQuantity" class="control-label">Zaliha</label>
+            <input asp-for="StockQuantity" class="form-control" />
+            <span asp-validation-for="StockQuantity" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="productImage" class="control-label">Slika sa računara</label>
+            <input id="productImage" name="productImage" type="file" accept="image/*" class="form-control" />
+            <small class="form-text text-muted">Odaberi sliku sa računara. Ako ovo ostaviš prazno, možeš koristiti link ispod.</small>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="ImageUrl" class="control-label">Link slike</label>
+            <input asp-for="ImageUrl" class="form-control" placeholder="Može ostati prazno ako si izabrao sliku sa računara" />
+            <span asp-validation-for="ImageUrl" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="Description" class="control-label">Opis proizvoda za korisnike</label>
+            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+            <small class="form-text text-muted">Ovaj opis će kupci vidjeti na stranici proizvoda.</small>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="DiscountPercent" class="control-label">Popust (%)</label>
+            <input asp-for="DiscountPercent" class="form-control" placeholder="10" />
+            <span asp-validation-for="DiscountPercent" class="text-danger"></span>
+        </div>
+
+        <input type="hidden" asp-for="CreatedAt" />
+
+        <div class="form-group form-check mb-3 size-toggle-row">
+            <label class="form-check-label">
+                <input class="form-check-input" asp-for="HasSizes" id="HasSizesToggle" /> Proizvod ima brojeve/veličine
+            </label>
+        </div>
+
+        <div class="form-actions">
+            <input type="submit" value="Sačuvaj" class="btn btn-primary" />
+            <a asp-action="Index" class="btn btn-outline-secondary">Nazad na proizvode</a>
+        </div>
     </div>
-</div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
+    <aside class="product-size-card" id="productSizeCard" aria-live="polite">
+        <div class="size-card-header">
+            <div>
+                <h2>Brojevi proizvoda</h2>
+                <p>Izaberi grupu i po potrebi promijeni količine.</p>
+            </div>
+            <select id="sizePreset" class="form-select size-preset-select">
+                <option value="custom">Ručno</option>
+                <option value="women">Ženski</option>
+                <option value="men">Muški</option>
+            </select>
+        </div>
+
+        <div class="size-table-wrap">
+            <table class="table align-middle size-stock-table">
+                <thead>
+                    <tr>
+                        <th>Broj</th>
+                        <th>Količina</th>
+                    </tr>
+                </thead>
+                <tbody id="presetSizeRows"></tbody>
+            </table>
+        </div>
+
+        <h3>Dodaj još brojeva</h3>
+        <p class="helper-text">Za dodatne ili posebne brojeve koje nema u listi.</p>
+        <table class="table align-middle size-stock-table extra-size-table">
+            <tbody id="extraSizeRows"></tbody>
+        </table>
+    </aside>
+</form>
+
+<style>
+    .product-create-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 680px) minmax(320px, 440px);
+        gap: 24px;
+        align-items: start;
+    }
+
+    .product-form-card,
+    .product-size-card {
+        border: 1px solid #f7c9cf;
+        border-radius: 6px;
+        padding: 20px;
+        background: #fff;
+    }
+
+    .product-size-card {
+        display: none;
+        position: sticky;
+        top: 16px;
+    }
+
+    .product-size-card.is-visible {
+        display: block;
+    }
+
+    .size-card-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: start;
+        margin-bottom: 14px;
+    }
+
+    .size-card-header h2 {
+        font-size: 22px;
+        font-weight: 900;
+        margin: 0 0 4px;
+    }
+
+    .size-card-header p,
+    .helper-text {
+        color: #697386;
+        margin: 0;
+    }
+
+    .size-preset-select {
+        max-width: 130px;
+    }
+
+    .size-stock-table thead {
+        background: #d82736;
+        color: #fff;
+    }
+
+    .size-stock-table input {
+        max-width: 130px;
+    }
+
+    .product-size-card h3 {
+        font-size: 17px;
+        font-weight: 900;
+        margin: 18px 0 4px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    @@media (max-width: 992px) {
+        .product-create-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .product-size-card {
+            position: static;
+        }
+    }
+</style>
+
+<script>
+    const hasSizesToggle = document.getElementById('HasSizesToggle');
+    const productSizeCard = document.getElementById('productSizeCard');
+    const stockQuantityGroup = document.getElementById('stockQuantityGroup');
+    const sizePreset = document.getElementById('sizePreset');
+    const categorySelect = document.getElementById('CategoryID');
+    const presetSizeRows = document.getElementById('presetSizeRows');
+    const extraSizeRows = document.getElementById('extraSizeRows');
+    const categorySizeGroups = @Html.Raw(JsonSerializer.Serialize(categorySizeGroups));
+
+    function getPresetSizes() {
+        if (sizePreset.value === 'men') {
+            return [41, 42, 43, 44, 45, 46];
+        }
+
+        if (sizePreset.value === 'women') {
+            return [36, 37, 38, 39, 40, 41];
+        }
+
+        return [];
+    }
+
+    function buildSizeRow(index, size, quantity, isPreset) {
+        const placeholder = isPreset ? '' : 'npr. 42';
+
+        return `
+            <tr>
+                <td>
+                    <input name="newSizes[${index}].Size" class="form-control" value="${size ?? ''}" placeholder="${placeholder}" />
+                </td>
+                <td>
+                    <input name="newSizes[${index}].StockQuantity" type="number" min="0" class="form-control" value="${quantity}" />
+                </td>
+            </tr>`;
+    }
+
+    function renderSizeRows() {
+        const presetSizes = getPresetSizes();
+        const mainRows = presetSizes.length > 0
+            ? presetSizes.map((size, index) => buildSizeRow(index, size, 1, true)).join('')
+            : Array.from({ length: 6 }, (_, index) => buildSizeRow(index, '', 0, false)).join('');
+
+        const extraRows = Array.from({ length: 4 }, (_, extraIndex) => buildSizeRow(extraIndex + 6, '', 0, false)).join('');
+
+        presetSizeRows.innerHTML = mainRows;
+        extraSizeRows.innerHTML = extraRows;
+    }
+
+    function applyCategoryPreset() {
+        const selectedGroup = categorySizeGroups[categorySelect.value] || 'custom';
+        sizePreset.value = selectedGroup;
+        renderSizeRows();
+    }
+
+    function toggleSizePanel() {
+        const isChecked = hasSizesToggle.checked;
+        productSizeCard.classList.toggle('is-visible', isChecked);
+        stockQuantityGroup.style.display = isChecked ? 'none' : 'block';
+
+        if (isChecked) {
+            applyCategoryPreset();
+        }
+    }
+
+    hasSizesToggle.addEventListener('change', toggleSizePanel);
+    sizePreset.addEventListener('change', renderSizeRows);
+    categorySelect.addEventListener('change', function () {
+        if (hasSizesToggle.checked) {
+            applyCategoryPreset();
+        }
+    });
+    toggleSizePanel();
+</script>
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
 }
+

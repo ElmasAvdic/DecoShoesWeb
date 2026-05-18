@@ -1,52 +1,6 @@
 ﻿@model DecoShoesWeb.Models.Payment
-
-@{
-    ViewData["Title"] = "Create";
-}
-
-<h1>Create</h1>
-
-<h4>Payment</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="OrderID" class="control-label"></label>
-                <select asp-for="OrderID" class ="form-control" asp-items="ViewBag.OrderID"></select>
-            </div>
-            <div class="form-group">
-                <label asp-for="PaymentDate" class="control-label"></label>
-                <input asp-for="PaymentDate" class="form-control" />
-                <span asp-validation-for="PaymentDate" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Amount" class="control-label"></label>
-                <input asp-for="Amount" class="form-control" />
-                <span asp-validation-for="Amount" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="PaymentMethod" class="control-label"></label>
-                <input asp-for="PaymentMethod" class="form-control" />
-                <span asp-validation-for="PaymentMethod" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="PaymentStatus" class="control-label"></label>
-                <input asp-for="PaymentStatus" class="form-control" />
-                <span asp-validation-for="PaymentStatus" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
-    </div>
-</div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}
+@{ ViewData["Title"] = "Dodaj plaćanje"; }
+<h1>Dodaj plaćanje</h1>
+<div class="admin-form-card"><form asp-action="Create"><div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div><div class="form-grid two"><div class="form-group mb-3"><label asp-for="OrderID">Narudžba</label><select asp-for="OrderID" class="form-control" asp-items="ViewBag.OrderID"></select></div><div class="form-group mb-3"><label asp-for="PaymentDate">Datum plaćanja</label><input asp-for="PaymentDate" class="form-control" /></div><div class="form-group mb-3"><label asp-for="Amount">Iznos</label><input asp-for="Amount" class="form-control" /></div><div class="form-group mb-3"><label asp-for="PaymentMethod">Način plaćanja</label><select asp-for="PaymentMethod" class="form-control"><option>Gotovina</option><option>Kartica</option><option>Žiralno</option><option>Pouzeće</option></select></div><div class="form-group mb-3"><label asp-for="PaymentStatus">Status plaćanja</label><select asp-for="PaymentStatus" class="form-control"><option>Na čekanju</option><option>Plaćeno</option><option>Odbijeno</option><option>Vraćeno</option></select></div></div><div class="admin-form-actions"><button type="submit" class="btn btn-primary">Sačuvaj</button><a asp-action="Index" class="btn btn-outline-secondary">Nazad na plaćanja</a></div></form></div>
+<style>.admin-form-card{max-width:820px;border:1px solid #f7c9cf;border-radius:6px;padding:20px;background:#fff}.form-grid.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}.admin-form-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}label{font-weight:800;margin-bottom:6px}@@media(max-width:700px){.form-grid.two{grid-template-columns:1fr}}</style>
+@section Scripts { @{await Html.RenderPartialAsync("_ValidationScriptsPartial");} }

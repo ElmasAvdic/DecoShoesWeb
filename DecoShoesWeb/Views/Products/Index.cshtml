@@ -1,14 +1,33 @@
-@model IEnumerable<DecoShoesWeb.Models.Product>
+﻿@model IEnumerable<DecoShoesWeb.Models.Product>
 
 @{
     ViewData["Title"] = "Admin proizvodi";
+    var currentSearch = ViewData["CurrentSearch"] as string ?? string.Empty;
 }
 
-<h1>Proizvodi</h1>
+<div class="admin-products-header">
+    <div>
+        <h1>Proizvodi</h1>
+        <a asp-action="Create" class="btn btn-primary">Dodaj novi proizvod</a>
+    </div>
+</div>
 
-<p>
-    <a asp-action="Create" class="btn btn-primary">Dodaj novi proizvod</a>
-</p>
+<form asp-action="Index" method="get" class="product-filter-bar">
+    <div class="filter-field category-filter">
+        <label for="categoryId">Kategorija</label>
+        <select id="categoryId" name="categoryId" class="form-select" asp-items="ViewBag.CategoryFilterID"></select>
+    </div>
+
+    <div class="filter-field search-filter">
+        <label for="search">Pretraga</label>
+        <input id="search" name="search" value="@currentSearch" class="form-control" placeholder="Naziv, brend, boja, opis..." />
+    </div>
+
+    <div class="filter-actions">
+        <button type="submit" class="btn btn-primary">Prikaži</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Očisti</a>
+    </div>
+</form>
 
 @if (TempData["Message"] != null)
 {
@@ -44,7 +63,7 @@
         ? (item.ProductSizes.Any()
             ? string.Join(", ", item.ProductSizes.OrderBy(s => s.Size).Select(s => $"{s.Size}: {s.StockQuantity}"))
             : "Nema brojeva")
-        : "Ne";
+        : "-";
 
         <tr>
             <td><strong>@item.Name</strong></td>
@@ -56,7 +75,10 @@
             <td>@(item.StockQuantity?.ToString() ?? "-")</td>
             <td class="size-summary">@sizeSummary</td>
             <td class="text-end admin-actions">
-                <a asp-controller="ProductSizes" asp-action="Manage" asp-route-productId="@item.ProductID" class="btn btn-sm btn-outline-primary">Brojevi</a>
+                @if (item.HasSizes)
+                {
+                    <a asp-controller="ProductSizes" asp-action="Manage" asp-route-productId="@item.ProductID" class="btn btn-sm btn-outline-primary">Brojevi</a>
+                }
                 <a asp-action="Edit" asp-route-id="@item.ProductID" class="btn btn-sm btn-outline-secondary">Uredi</a>
                 <a asp-action="Details" asp-route-id="@item.ProductID" class="btn btn-sm btn-outline-secondary">Detalji</a>
                 <a asp-action="Delete" asp-route-id="@item.ProductID" class="btn btn-sm btn-danger">Obriši</a>
@@ -66,45 +88,64 @@
     </tbody>
 </table>
 
+@if (!Model.Any())
+{
+    <div class="empty-products-state">Nema proizvoda za izabranu kategoriju ili pretragu.</div>
+}
+
 <style>
-    .admin-products-table thead {
-        background: #d82736;
-        color: #fff;
+    .admin-products-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        gap: 18px;
     }
 
-    .admin-products-table tbody tr:hover {
+    .product-filter-bar {
+        display: grid;
+        grid-template-columns: minmax(220px, 320px) minmax(260px, 1fr) auto;
+        gap: 14px;
+        align-items: end;
+        margin-top: 18px;
+        padding: 16px;
+        border: 1px solid #f7c9cf;
+        border-radius: 6px;
         background: #fff1f3;
     }
 
-    .admin-products-table .btn-danger {
-        background: #d82736;
-        border-color: #d82736;
+    .filter-field label {
+        display: block;
+        font-weight: 800;
+        margin-bottom: 6px;
     }
 
-    .admin-actions {
+    .filter-actions {
+        display: flex;
+        gap: 8px;
         white-space: nowrap;
     }
 
-    .size-summary {
-        max-width: 260px;
-        white-space: normal;
+    .admin-products-table thead { background: #d82736; color: #fff; }
+    .admin-products-table tbody tr:hover { background: #fff1f3; }
+    .admin-products-table .btn-danger { background: #d82736; border-color: #d82736; }
+    .admin-actions { white-space: nowrap; }
+    .size-summary { max-width: 260px; white-space: normal; color: #6f3741; font-size: 14px; }
+    .admin-actions .btn-outline-primary { border-color: #d82736; color: #d82736; }
+    .admin-actions .btn-outline-primary:hover { background: #d82736; color: #fff; }
+    .admin-actions .btn-outline-secondary:hover { background: #ffd166; border-color: #ffd166; color: #211a1d; }
+
+    .empty-products-state {
+        padding: 18px;
+        border: 1px solid #f7c9cf;
+        border-radius: 6px;
+        background: #fff1f3;
+        font-weight: 800;
         color: #6f3741;
-        font-size: 14px;
     }
 
-    .admin-actions .btn-outline-primary {
-        border-color: #d82736;
-        color: #d82736;
-    }
-
-    .admin-actions .btn-outline-primary:hover {
-        background: #d82736;
-        color: #fff;
-    }
-
-    .admin-actions .btn-outline-secondary:hover {
-        background: #ffd166;
-        border-color: #ffd166;
-        color: #211a1d;
+    @@media (max-width: 900px) {
+        .product-filter-bar {
+            grid-template-columns: 1fr;
+        }
     }
 </style>

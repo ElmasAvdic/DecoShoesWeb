@@ -20,10 +20,44 @@ namespace DecoShoesWeb.Controllers
         }
 
         // GET: OrderItems
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? orderId, int? productId, string? search)
         {
-            var applicationDbContext = _context.OrderItems.Include(o => o.Order).Include(o => o.Product);
-            return View(await applicationDbContext.ToListAsync());
+            var orderItems = _context.OrderItems
+                .Include(o => o.Order)
+                .ThenInclude(o => o!.Customer)
+                .Include(o => o.Product)
+                .Include(o => o.ProductSize)
+                .AsQueryable();
+
+            if (orderId.HasValue)
+            {
+                orderItems = orderItems.Where(oi => oi.OrderID == orderId.Value);
+            }
+
+            if (productId.HasValue)
+            {
+                orderItems = orderItems.Where(oi => oi.ProductID == productId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                orderItems = orderItems.Where(oi =>
+                    oi.OrderID.ToString().Contains(term) ||
+                    (oi.Size != null && oi.Size.Contains(term)) ||
+                    (oi.Product != null && oi.Product.Name.Contains(term)) ||
+                    (oi.Order != null && oi.Order.Customer != null &&
+                        (oi.Order.Customer.FirstName.Contains(term) || oi.Order.Customer.LastName.Contains(term))));
+            }
+
+            await LoadOrderFilterOptionsAsync(orderId);
+            await LoadProductFilterOptionsAsync(productId);
+            ViewData["CurrentSearch"] = search;
+
+            return View(await orderItems
+                .OrderByDescending(oi => oi.OrderID)
+                .ThenBy(oi => oi.Product!.Name)
+                .ToListAsync());
         }
 
         // GET: OrderItems/Details/5
@@ -49,8 +83,8 @@ namespace DecoShoesWeb.Controllers
         // GET: OrderItems/Create
         public IActionResult Create()
         {
-            ViewData["OrderID"] = new SelectList(_context.Orders, "OrderID", "OrderID");
-            ViewData["ProductID"] = new SelectList(_context.Products, "ProductID", "Name");
+            LoadOrderOptions();
+            LoadProductOptions();
             return View();
         }
 
@@ -94,6 +128,7 @@ namespace DecoShoesWeb.Controllers
 
                         // Update product stock quantity
                         await UpdateProductStockQuantity(orderItem.ProductID);
+                        await UpdateOrderTotalAmount(orderItem.OrderID);
 
                         return RedirectToAction(nameof(Index));
                     }
@@ -111,14 +146,15 @@ namespace DecoShoesWeb.Controllers
                         _context.Update(product);
                         _context.Add(orderItem);
                         await _context.SaveChangesAsync();
+                        await UpdateOrderTotalAmount(orderItem.OrderID);
 
                         return RedirectToAction(nameof(Index));
                     }
                 }
             }
 
-            ViewData["OrderID"] = new SelectList(_context.Orders, "OrderID", "OrderID", orderItem.OrderID);
-            ViewData["ProductID"] = new SelectList(_context.Products, "ProductID", "Name", orderItem.ProductID);
+            LoadOrderOptions(orderItem.OrderID);
+            LoadProductOptions(orderItem.ProductID);
 
             return View(orderItem);
         }
@@ -136,8 +172,8 @@ namespace DecoShoesWeb.Controllers
             {
                 return NotFound();
             }
-            ViewData["OrderID"] = new SelectList(_context.Orders, "OrderID", "OrderID", orderItem.OrderID);
-            ViewData["ProductID"] = new SelectList(_context.Products, "ProductID", "Name", orderItem.ProductID);
+            LoadOrderOptions(orderItem.OrderID);
+            LoadProductOptions(orderItem.ProductID);
             return View(orderItem);
         }
 
@@ -176,8 +212,8 @@ namespace DecoShoesWeb.Controllers
                             if (productSize.StockQuantity < quantityDifference)
                             {
                                 ModelState.AddModelError("", "Not enough stock for this change.");
-                                ViewData["OrderID"] = new SelectList(_context.Orders, "OrderID", "OrderID", orderItem.OrderID);
-                                ViewData["ProductID"] = new SelectList(_context.Products, "ProductID", "Name", orderItem.ProductID);
+                                LoadOrderOptions(orderItem.OrderID);
+                                LoadProductOptions(orderItem.ProductID);
                                 return View(orderItem);
                             }
                             productSize.StockQuantity -= quantityDifference;
@@ -193,8 +229,8 @@ namespace DecoShoesWeb.Controllers
                             if (product.StockQuantity < quantityDifference)
                             {
                                 ModelState.AddModelError("", "Not enough stock for this change.");
-                                ViewData["OrderID"] = new SelectList(_context.Orders, "OrderID", "OrderID", orderItem.OrderID);
-                                ViewData["ProductID"] = new SelectList(_context.Products, "ProductID", "Name", orderItem.ProductID);
+                                LoadOrderOptions(orderItem.OrderID);
+                                LoadProductOptions(orderItem.ProductID);
                                 return View(orderItem);
                             }
                             product.StockQuantity -= quantityDifference;
@@ -207,6 +243,7 @@ namespace DecoShoesWeb.Controllers
 
                     // Update product stock quantity
                     await UpdateProductStockQuantity(orderItem.ProductID);
+                    await UpdateOrderTotalAmount(orderItem.OrderID);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -221,8 +258,8 @@ namespace DecoShoesWeb.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["OrderID"] = new SelectList(_context.Orders, "OrderID", "OrderID", orderItem.OrderID);
-            ViewData["ProductID"] = new SelectList(_context.Products, "ProductID", "Name", orderItem.ProductID);
+            LoadOrderOptions(orderItem.OrderID);
+            LoadProductOptions(orderItem.ProductID);
             return View(orderItem);
         }
 
@@ -279,6 +316,7 @@ namespace DecoShoesWeb.Controllers
 
                 // Update product stock quantity
                 await UpdateProductStockQuantity(orderItem.ProductID);
+                await UpdateOrderTotalAmount(orderItem.OrderID);
             }
 
             return RedirectToAction(nameof(Index));
@@ -302,6 +340,71 @@ namespace DecoShoesWeb.Controllers
                 _context.Update(product);
                 await _context.SaveChangesAsync();
             }
+        }
+
+        private async Task UpdateOrderTotalAmount(int orderId)
+        {
+            var order = await _context.Orders.FindAsync(orderId);
+            if (order == null)
+            {
+                return;
+            }
+
+            order.TotalAmount = await _context.OrderItems
+                .Where(oi => oi.OrderID == orderId)
+                .SumAsync(oi => oi.Quantity * oi.UnitPrice);
+
+            _context.Update(order);
+            await _context.SaveChangesAsync();
+        }
+
+        private void LoadOrderOptions(int? selectedOrderId = null)
+        {
+            var orders = _context.Orders
+                .Include(o => o.Customer)
+                .OrderByDescending(o => o.OrderDate)
+                .Select(o => new
+                {
+                    o.OrderID,
+                    DisplayName = "#" + o.OrderID + " - " + (o.Customer != null ? o.Customer.FirstName + " " + o.Customer.LastName : "Kupac")
+                })
+                .ToList();
+
+            ViewData["OrderID"] = new SelectList(orders, "OrderID", "DisplayName", selectedOrderId);
+        }
+
+        private void LoadProductOptions(int? selectedProductId = null)
+        {
+            ViewData["ProductID"] = new SelectList(
+                _context.Products.OrderBy(p => p.Name).ToList(),
+                "ProductID",
+                "Name",
+                selectedProductId);
+        }
+
+        private async Task LoadOrderFilterOptionsAsync(int? selectedOrderId = null)
+        {
+            var orders = await _context.Orders
+                .Include(o => o.Customer)
+                .OrderByDescending(o => o.OrderDate)
+                .Select(o => new
+                {
+                    o.OrderID,
+                    DisplayName = "#" + o.OrderID + " - " + (o.Customer != null ? o.Customer.FirstName + " " + o.Customer.LastName : "Kupac")
+                })
+                .ToListAsync();
+
+            var options = new List<SelectListItem> { new SelectListItem { Value = "", Text = "Sve narudžbine", Selected = !selectedOrderId.HasValue } };
+            options.AddRange(orders.Select(o => new SelectListItem { Value = o.OrderID.ToString(), Text = o.DisplayName, Selected = selectedOrderId == o.OrderID }));
+            ViewData["OrderFilterID"] = options;
+        }
+
+        private async Task LoadProductFilterOptionsAsync(int? selectedProductId = null)
+        {
+            var products = await _context.Products.OrderBy(p => p.Name).ToListAsync();
+            var options = new List<SelectListItem> { new SelectListItem { Value = "", Text = "Svi proizvodi", Selected = !selectedProductId.HasValue } };
+            options.AddRange(products.Select(p => new SelectListItem { Value = p.ProductID.ToString(), Text = p.Name, Selected = selectedProductId == p.ProductID }));
+            ViewData["ProductFilterID"] = options;
         }
     }
 }

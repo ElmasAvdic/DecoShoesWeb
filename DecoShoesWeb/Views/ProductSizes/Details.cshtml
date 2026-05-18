@@ -1,36 +1,57 @@
 ﻿@model DecoShoesWeb.Models.ProductSize
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Detalji broja";
 }
 
-<h1>Details</h1>
+<h1>Detalji broja</h1>
 
-<div>
-    <h4>ProductSize</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Product)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Product.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Size)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Size)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.StockQuantity)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.StockQuantity)
-        </dd>
-    </dl>
+<div class="details-card">
+    <div class="details-grid">
+        <div>
+            <span>Proizvod</span>
+            <strong>@(Model.Product?.Name ?? "-")</strong>
+        </div>
+        <div>
+            <span>Broj / veličina</span>
+            <strong>@Model.Size</strong>
+        </div>
+        <div>
+            <span>Količina u lageru</span>
+            <strong>@Model.StockQuantity</strong>
+        </div>
+        <div>
+            <span>Status</span>
+            @if (Model.StockQuantity <= 0)
+            {
+                <strong class="status-danger">Nema na stanju</strong>
+            }
+            else if (Model.StockQuantity <= 3)
+            {
+                <strong class="status-warning">Niska zaliha</strong>
+            }
+            else
+            {
+                <strong class="status-ok">Dostupno</strong>
+            }
+        </div>
+    </div>
+
+    <div class="details-actions">
+        <a asp-action="Edit" asp-route-id="@Model.ProductSizeID" class="btn btn-primary">Uredi</a>
+        <a asp-action="Index" class="btn btn-outline-secondary">Nazad na veličine</a>
+    </div>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.ProductSizeID">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+
+<style>
+    .details-card { max-width: 760px; border: 1px solid #f7c9cf; border-radius: 6px; padding: 20px; background: #fff; }
+    .details-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .details-grid div { padding: 14px; border-radius: 6px; background: #fff1f3; }
+    .details-grid span { display: block; color: #697386; font-weight: 700; margin-bottom: 4px; }
+    .details-grid strong { font-size: 18px; }
+    .status-ok { color: #166534; }
+    .status-warning { color: #8a5a00; }
+    .status-danger { color: #a91524; }
+    .details-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    @@media (max-width: 700px) { .details-grid { grid-template-columns: 1fr; } }
+</style>

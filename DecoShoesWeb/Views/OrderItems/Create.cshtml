@@ -1,52 +1,6 @@
 ﻿@model DecoShoesWeb.Models.OrderItem
-
-@{
-    ViewData["Title"] = "Create";
-}
-
-<h1>Create</h1>
-
-<h4>OrderItem</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <div class="form-group">
-                <label asp-for="OrderID" class="control-label"></label>
-                <select asp-for="OrderID" class="form-control" asp-items="ViewBag.OrderID"></select>
-                <span asp-validation-for="OrderID" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="ProductID" class="control-label"></label>
-                <select asp-for="ProductID" class ="form-control" asp-items="ViewBag.ProductID"></select>
-            </div>
-            <div class="form-group">
-                <label asp-for="Size" class="control-label"></label>
-                <input asp-for="Size" class="form-control" />
-                <span asp-validation-for="Size" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Quantity" class="control-label"></label>
-                <input asp-for="Quantity" class="form-control" />
-                <span asp-validation-for="Quantity" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="UnitPrice" class="control-label"></label>
-                <input asp-for="UnitPrice" class="form-control" />
-                <span asp-validation-for="UnitPrice" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Create" class="btn btn-primary" />
-            </div>
-        </form>
-    </div>
-</div>
-
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
-@section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-}
+@{ ViewData["Title"] = "Dodaj stavku narudžbe"; }
+<h1>Dodaj stavku narudžbe</h1>
+<div class="admin-form-card"><form asp-action="Create"><div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div><div class="form-grid two"><div class="form-group mb-3"><label asp-for="OrderID">Narudžba</label><select asp-for="OrderID" class="form-control" asp-items="ViewBag.OrderID"></select></div><div class="form-group mb-3"><label asp-for="ProductID">Proizvod</label><select asp-for="ProductID" class="form-control" asp-items="ViewBag.ProductID"></select></div><div class="form-group mb-3"><label asp-for="Size">Broj / veličina</label><input asp-for="Size" class="form-control" placeholder="npr. 42" /></div><div class="form-group mb-3"><label asp-for="Quantity">Količina</label><input asp-for="Quantity" type="number" min="1" class="form-control" /></div><div class="form-group mb-3"><label asp-for="UnitPrice">Cijena po komadu</label><input asp-for="UnitPrice" class="form-control" /></div></div><div class="admin-form-actions"><button type="submit" class="btn btn-primary">Sačuvaj</button><a asp-action="Index" class="btn btn-outline-secondary">Nazad na stavke</a></div></form></div>
+<style>.admin-form-card{max-width:820px;border:1px solid #f7c9cf;border-radius:6px;padding:20px;background:#fff}.form-grid.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}.admin-form-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}label{font-weight:800;margin-bottom:6px}@@media(max-width:700px){.form-grid.two{grid-template-columns:1fr}}</style>
+@section Scripts { @{await Html.RenderPartialAsync("_ValidationScriptsPartial");} }

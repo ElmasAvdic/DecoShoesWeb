@@ -1,48 +1,5 @@
 ﻿@model DecoShoesWeb.Models.OrderItem
-
-@{
-    ViewData["Title"] = "Details";
-}
-
-<h1>Details</h1>
-
-<div>
-    <h4>OrderItem</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Order)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Order.OrderID)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Product)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Product.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Size)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Size)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Quantity)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Quantity)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UnitPrice)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UnitPrice)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.OrderItemID">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+@{ ViewData["Title"] = "Detalji stavke"; var total = Model.Quantity * Model.UnitPrice; }
+<h1>Detalji stavke</h1>
+<div class="details-card"><div class="details-grid"><div><span>Narudžba</span><strong>#@Model.OrderID</strong></div><div><span>Proizvod</span><strong>@(Model.Product?.Name ?? "-")</strong></div><div><span>Broj / veličina</span><strong>@(Model.Size ?? Model.ProductSize?.Size ?? "-")</strong></div><div><span>Količina</span><strong>@Model.Quantity</strong></div><div><span>Cijena</span><strong>@Model.UnitPrice.ToString("0.00") KM</strong></div><div><span>Ukupno</span><strong>@total.ToString("0.00") KM</strong></div></div><div class="details-actions"><a asp-action="Edit" asp-route-id="@Model.OrderItemID" class="btn btn-primary">Uredi</a><a asp-action="Index" class="btn btn-outline-secondary">Nazad na stavke</a></div></div>
+<style>.details-card{max-width:850px;border:1px solid #f7c9cf;border-radius:6px;padding:20px;background:#fff}.details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.details-grid div{background:#fff1f3;border-radius:6px;padding:14px}.details-grid span{display:block;color:#697386;font-weight:700}.details-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}@@media(max-width:700px){.details-grid{grid-template-columns:1fr}}</style>

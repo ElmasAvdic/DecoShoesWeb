@@ -1,4 +1,4 @@
-@model DecoShoesWeb.Models.ProductSizeStockManageViewModel
+﻿@model DecoShoesWeb.Models.ProductSizeStockManageViewModel
 
 @{
     ViewData["Title"] = "Brojevi proizvoda";
@@ -54,7 +54,18 @@
         </table>
     }
 
-    <h2 class="mt-4">Dodaj nove brojeve</h2>
+    <div class="new-size-heading">
+        <div>
+            <h2>Dodaj nove brojeve</h2>
+            <p>Izaberi muške ili ženske brojeve, pa promijeni količine po potrebi.</p>
+        </div>
+        <select id="sizePreset" class="form-select preset-select">
+            <option value="custom">Ručno</option>
+            <option value="women">Ženski 36-41</option>
+            <option value="men">Muški 41-46</option>
+        </select>
+    </div>
+
     <table class="table align-middle size-stock-table">
         <thead>
             <tr>
@@ -67,10 +78,10 @@
             {
                 <tr>
                     <td>
-                        <input asp-for="NewSizes[i].Size" class="form-control size-input" placeholder="npr. 42" />
+                        <input asp-for="NewSizes[i].Size" class="form-control size-input new-size-field" placeholder="npr. 42" />
                     </td>
                     <td>
-                        <input asp-for="NewSizes[i].StockQuantity" class="form-control quantity-input" min="0" />
+                        <input asp-for="NewSizes[i].StockQuantity" class="form-control quantity-input new-quantity-field" min="0" />
                         <span asp-validation-for="NewSizes[i].StockQuantity" class="text-danger"></span>
                     </td>
                 </tr>
@@ -128,12 +139,55 @@
         border-radius: 6px;
     }
 
+    .new-size-heading {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 24px;
+        margin-bottom: 12px;
+    }
+
+    .new-size-heading h2 {
+        margin-bottom: 4px;
+    }
+
+    .new-size-heading p {
+        color: #697386;
+        margin: 0;
+    }
+
+    .preset-select {
+        max-width: 170px;
+    }
+
     .admin-form-actions {
         display: flex;
         gap: 10px;
         margin-top: 20px;
     }
 </style>
+
+<script>
+    const presetSelect = document.getElementById('sizePreset');
+    const newSizeFields = Array.from(document.querySelectorAll('.new-size-field'));
+    const newQuantityFields = Array.from(document.querySelectorAll('.new-quantity-field'));
+
+    function applyPreset() {
+        const preset = presetSelect.value;
+        const sizes = preset === 'men' ? [41, 42, 43, 44, 45, 46] : preset === 'women' ? [36, 37, 38, 39, 40, 41] : [];
+
+        newSizeFields.forEach((field, index) => {
+            field.value = sizes[index] ?? '';
+        });
+
+        newQuantityFields.forEach((field, index) => {
+            field.value = sizes[index] ? 1 : 0;
+        });
+    }
+
+    presetSelect.addEventListener('change', applyPreset);
+</script>
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}

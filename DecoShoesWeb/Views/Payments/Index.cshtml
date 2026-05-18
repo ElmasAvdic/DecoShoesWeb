@@ -2,58 +2,39 @@
 
 @{
     ViewData["Title"] = "Plaćanja";
+    var currentSearch = ViewData["CurrentSearch"] as string ?? string.Empty;
+    var currentStatus = ViewData["CurrentStatus"] as string ?? string.Empty;
 }
 
-<h1>Plaćanja</h1>
+<div class="admin-page-header">
+    <div><h1>Plaćanja</h1><p>Evidencija plaćanja vezanih za narudžbe.</p></div>
+    <a asp-action="Create" class="btn btn-primary">Dodaj plaćanje</a>
+</div>
 
-<p>
-    <a asp-action="Create">Dodaj Novo</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                Narudžbina
-            </th>
-            <th>
-                Datum Plaćanja
-            </th>
-            <th>
-                Iznos
-            </th>
-            <th>
-                Način Plaćanja
-            </th>
-            <th>
-                Status Plaćanja
-            </th>
-            <th></th>
-        </tr>
-    </thead>
+<form asp-action="Index" method="get" class="admin-filter-bar payments-filter">
+    <div class="filter-field"><label for="orderId">Narudžba</label><select id="orderId" name="orderId" class="form-select" asp-items="ViewBag.OrderFilterID"></select></div>
+    <div class="filter-field"><label for="status">Status</label><select id="status" name="status" class="form-select"><option value="">Svi statusi</option><option value="Na čekanju" selected="@(currentStatus == "Na čekanju" ? "selected" : null)">Na čekanju</option><option value="Plaćeno" selected="@(currentStatus == "Plaćeno" ? "selected" : null)">Plaćeno</option><option value="Odbijeno" selected="@(currentStatus == "Odbijeno" ? "selected" : null)">Odbijeno</option><option value="Vraćeno" selected="@(currentStatus == "Vraćeno" ? "selected" : null)">Vraćeno</option></select></div>
+    <div class="filter-field"><label for="search">Pretraga</label><input id="search" name="search" value="@currentSearch" class="form-control" placeholder="Narudžba, kupac ili način plaćanja..." /></div>
+    <div class="filter-actions"><button type="submit" class="btn btn-primary">Prikaži</button><a asp-action="Index" class="btn btn-outline-secondary">Očisti</a></div>
+</form>
+
+<table class="table align-middle admin-table mt-4">
+    <thead><tr><th>Narudžba</th><th>Kupac</th><th>Datum</th><th>Iznos</th><th>Način</th><th>Status</th><th></th></tr></thead>
     <tbody>
-@foreach (var item in Model) {
+@foreach (var item in Model)
+{
+    var customerName = item.Order?.Customer != null ? item.Order.Customer.FirstName + " " + item.Order.Customer.LastName : "-";
         <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Order.OrderID)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.PaymentDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Amount)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.PaymentMethod)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.PaymentStatus)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.PaymentID">Uredi</a> |
-                <a asp-action="Details" asp-route-id="@item.PaymentID">Detalji</a> |
-                <a asp-action="Delete" asp-route-id="@item.PaymentID">Obriši</a>
-            </td>
+            <td><strong>#@item.OrderID</strong></td>
+            <td>@customerName</td>
+            <td>@item.PaymentDate.ToString("dd.MM.yyyy HH:mm")</td>
+            <td>@item.Amount.ToString("0.00") KM</td>
+            <td>@(item.PaymentMethod ?? "-")</td>
+            <td><span class="status-pill">@(item.PaymentStatus ?? "-")</span></td>
+            <td class="text-end admin-actions"><a asp-action="Edit" asp-route-id="@item.PaymentID" class="btn btn-sm btn-outline-secondary">Uredi</a><a asp-action="Details" asp-route-id="@item.PaymentID" class="btn btn-sm btn-outline-secondary">Detalji</a><a asp-action="Delete" asp-route-id="@item.PaymentID" class="btn btn-sm btn-danger">Obriši</a></td>
         </tr>
 }
     </tbody>
 </table>
+@if (!Model.Any()) { <div class="empty-state">Nema plaćanja za izabrani filter.</div> }
+<style>.admin-page-header{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:18px}.admin-page-header h1{margin-bottom:4px}.admin-page-header p{margin:0;color:#697386}.admin-filter-bar{display:grid;gap:14px;align-items:end;padding:16px;border:1px solid #f7c9cf;border-radius:6px;background:#fff1f3}.payments-filter{grid-template-columns:minmax(200px,280px) minmax(160px,210px) minmax(240px,1fr) auto}.filter-field label{display:block;font-weight:800;margin-bottom:6px}.filter-actions{display:flex;gap:8px;white-space:nowrap}.admin-table thead{background:#d82736;color:#fff}.admin-table tbody tr:hover{background:#fff1f3}.admin-actions{white-space:nowrap}.admin-table .btn-danger{background:#d82736;border-color:#d82736}.status-pill{display:inline-block;padding:5px 10px;border-radius:999px;background:#fff1f3;color:#a91524;font-weight:800}.empty-state{padding:18px;border:1px solid #f7c9cf;border-radius:6px;background:#fff1f3;font-weight:800;color:#6f3741}@@media(max-width:1000px){.payments-filter{grid-template-columns:1fr}.admin-page-header{align-items:start;flex-direction:column}}</style>

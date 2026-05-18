@@ -1,42 +1,5 @@
 ﻿@model DecoShoesWeb.Models.Order
-
-@{
-    ViewData["Title"] = "Details";
-}
-
-<h1>Details</h1>
-
-<div>
-    <h4>Order</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Customer)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Customer.CustomerID)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.OrderDate)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.OrderDate)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TotalAmount)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TotalAmount)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Status)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Status)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.OrderID">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+@{ ViewData["Title"] = "Detalji narudžbe"; }
+<h1>Detalji narudžbe</h1>
+<div class="details-card"><div class="details-grid"><div><span>Narudžba</span><strong>#@Model.OrderID</strong></div><div><span>Kupac</span><strong>@(Model.Customer != null ? Model.Customer.FirstName + " " + Model.Customer.LastName : "-")</strong></div><div><span>Datum</span><strong>@Model.OrderDate.ToString("dd.MM.yyyy HH:mm")</strong></div><div><span>Iznos</span><strong>@Model.TotalAmount.ToString("0.00") KM</strong></div><div><span>Status</span><strong>@(Model.Status ?? "-")</strong></div></div><div class="details-actions"><a asp-controller="OrderItems" asp-action="Index" asp-route-orderId="@Model.OrderID" class="btn btn-outline-primary">Stavke</a><a asp-controller="Payments" asp-action="Index" asp-route-orderId="@Model.OrderID" class="btn btn-outline-primary">Plaćanja</a><a asp-action="Edit" asp-route-id="@Model.OrderID" class="btn btn-primary">Uredi</a><a asp-action="Index" class="btn btn-outline-secondary">Nazad na narudžbine</a></div></div>
+<style>.details-card{max-width:850px;border:1px solid #f7c9cf;border-radius:6px;padding:20px;background:#fff}.details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.details-grid div{background:#fff1f3;border-radius:6px;padding:14px}.details-grid span{display:block;color:#697386;font-weight:700}.details-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}@@media(max-width:700px){.details-grid{grid-template-columns:1fr}}</style>

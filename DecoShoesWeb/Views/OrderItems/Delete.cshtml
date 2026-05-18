@@ -1,51 +1,5 @@
 ﻿@model DecoShoesWeb.Models.OrderItem
-
-@{
-    ViewData["Title"] = "Delete";
-}
-
-<h1>Delete</h1>
-
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>OrderItem</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Order)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Order.OrderID)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Product)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Product.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Size)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Size)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Quantity)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Quantity)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.UnitPrice)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.UnitPrice)
-        </dd>
-    </dl>
-    
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="OrderItemID" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
-        <a asp-action="Index">Back to List</a>
-    </form>
-</div>
+@{ ViewData["Title"] = "Obriši stavku"; var total = Model.Quantity * Model.UnitPrice; }
+<h1>Obriši stavku</h1>
+<div class="delete-card"><h2>Da li želiš obrisati ovu stavku?</h2><p>Brisanjem stavke količina se vraća na lager.</p><div class="delete-summary"><div><span>Narudžba</span><strong>#@Model.OrderID</strong></div><div><span>Proizvod</span><strong>@(Model.Product?.Name ?? "-")</strong></div><div><span>Ukupno</span><strong>@total.ToString("0.00") KM</strong></div></div><form asp-action="Delete" class="delete-actions"><input type="hidden" asp-for="OrderItemID" /><button type="submit" class="btn btn-danger">Obriši</button><a asp-action="Index" class="btn btn-outline-secondary">Nazad na stavke</a></form></div>
+<style>.delete-card{max-width:850px;border:1px solid #f7c9cf;border-radius:6px;padding:20px;background:#fff}.delete-card h2{font-size:22px;font-weight:900}.delete-card p{color:#697386}.delete-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}.delete-summary div{background:#fff1f3;border-radius:6px;padding:14px}.delete-summary span{display:block;color:#697386;font-weight:700}.delete-actions{display:flex;gap:10px;flex-wrap:wrap}@@media(max-width:700px){.delete-summary{grid-template-columns:1fr}}</style>

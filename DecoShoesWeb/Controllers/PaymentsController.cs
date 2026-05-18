@@ -20,10 +20,41 @@ namespace DecoShoesWeb.Controllers
         }
 
         // GET: Payments
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? orderId, string? status, string? search)
         {
-            var applicationDbContext = _context.Payments.Include(p => p.Order);
-            return View(await applicationDbContext.ToListAsync());
+            var payments = _context.Payments
+                .Include(p => p.Order)
+                .ThenInclude(o => o!.Customer)
+                .AsQueryable();
+
+            if (orderId.HasValue)
+            {
+                payments = payments.Where(p => p.OrderID == orderId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                payments = payments.Where(p => p.PaymentStatus == status);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                payments = payments.Where(p =>
+                    p.OrderID.ToString().Contains(term) ||
+                    (p.PaymentMethod != null && p.PaymentMethod.Contains(term)) ||
+                    (p.Order != null && p.Order.Customer != null &&
+                        (p.Order.Customer.FirstName.Contains(term) || p.Order.Customer.LastName.Contains(term))));
+            }
+
+            await LoadOrderFilterOptionsAsync(orderId);
+            ViewData["CurrentSearch"] = search;
+            ViewData["CurrentStatus"] = status;
+
+            return View(await payments
+                .OrderByDescending(p => p.PaymentDate)
+                .ThenByDescending(p => p.PaymentID)
+                .ToListAsync());
         }
 
         // GET: Payments/Details/5
@@ -48,8 +79,8 @@ namespace DecoShoesWeb.Controllers
         // GET: Payments/Create
         public IActionResult Create()
         {
-            ViewData["OrderID"] = new SelectList(_context.Orders, "OrderID", "OrderID");
-            return View();
+            LoadOrderOptions();
+            return View(new Payment { PaymentDate = DateTime.Now, PaymentStatus = "Na čekanju" });
         }
 
         // POST: Payments/Create
@@ -65,7 +96,7 @@ namespace DecoShoesWeb.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["OrderID"] = new SelectList(_context.Orders, "OrderID", "OrderID", payment.OrderID);
+            LoadOrderOptions(payment.OrderID);
             return View(payment);
         }
 
@@ -82,7 +113,7 @@ namespace DecoShoesWeb.Controllers
             {
                 return NotFound();
             }
-            ViewData["OrderID"] = new SelectList(_context.Orders, "OrderID", "OrderID", payment.OrderID);
+            LoadOrderOptions(payment.OrderID);
             return View(payment);
         }
 
@@ -118,7 +149,7 @@ namespace DecoShoesWeb.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["OrderID"] = new SelectList(_context.Orders, "OrderID", "OrderID", payment.OrderID);
+            LoadOrderOptions(payment.OrderID);
             return View(payment);
         }
 
@@ -159,6 +190,48 @@ namespace DecoShoesWeb.Controllers
         private bool PaymentExists(int id)
         {
             return _context.Payments.Any(e => e.PaymentID == id);
+        }
+
+        private void LoadOrderOptions(int? selectedOrderId = null)
+        {
+            var orders = _context.Orders
+                .Include(o => o.Customer)
+                .OrderByDescending(o => o.OrderDate)
+                .ToList()
+                .Select(o => new
+                {
+                    o.OrderID,
+                    DisplayName = "#" + o.OrderID + " - " + (o.Customer != null ? o.Customer.FirstName + " " + o.Customer.LastName : "Kupac") + " - " + o.TotalAmount.ToString("0.00") + " KM"
+                });
+
+            ViewData["OrderID"] = new SelectList(orders, "OrderID", "DisplayName", selectedOrderId);
+        }
+
+        private async Task LoadOrderFilterOptionsAsync(int? selectedOrderId = null)
+        {
+            var orders = await _context.Orders
+                .Include(o => o.Customer)
+                .OrderByDescending(o => o.OrderDate)
+                .Select(o => new
+                {
+                    o.OrderID,
+                    DisplayName = "#" + o.OrderID + " - " + (o.Customer != null ? o.Customer.FirstName + " " + o.Customer.LastName : "Kupac")
+                })
+                .ToListAsync();
+
+            var options = new List<SelectListItem>
+            {
+                new SelectListItem { Value = "", Text = "Sve narudžbine", Selected = !selectedOrderId.HasValue }
+            };
+
+            options.AddRange(orders.Select(o => new SelectListItem
+            {
+                Value = o.OrderID.ToString(),
+                Text = o.DisplayName,
+                Selected = selectedOrderId == o.OrderID
+            }));
+
+            ViewData["OrderFilterID"] = options;
         }
     }
 }

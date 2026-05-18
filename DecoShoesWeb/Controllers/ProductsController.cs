@@ -9,20 +9,50 @@ namespace DecoShoesWeb.Controllers
     public class ProductsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IWebHostEnvironment _environment;
 
-        public ProductsController(ApplicationDbContext context)
+        public ProductsController(ApplicationDbContext context, IWebHostEnvironment environment)
         {
             _context = context;
+            _environment = environment;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? categoryId, string? search)
         {
-            var applicationDbContext = _context.Products
+            var products = _context.Products
                 .Include(p => p.Category)
                 .ThenInclude(c => c.ParentCategory)
-                .Include(p => p.ProductSizes);
+                .Include(p => p.ProductSizes)
+                .AsQueryable();
 
-            return View(await applicationDbContext.ToListAsync());
+            if (categoryId.HasValue)
+            {
+                products = products.Where(p =>
+                    p.CategoryID == categoryId.Value ||
+                    p.Category!.ParentCategoryID == categoryId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                products = products.Where(p =>
+                    p.Name.Contains(term) ||
+                    (p.Brand != null && p.Brand.Contains(term)) ||
+                    (p.Color != null && p.Color.Contains(term)) ||
+                    (p.Description != null && p.Description.Contains(term)) ||
+                    (p.Category != null && p.Category.Name.Contains(term)) ||
+                    (p.Category != null && p.Category.ParentCategory != null && p.Category.ParentCategory.Name.Contains(term)));
+            }
+
+            await LoadCategoryFilterOptionsAsync(categoryId);
+            ViewData["CurrentSearch"] = search;
+
+            return View(await products
+                .OrderBy(p => p.Category!.ParentCategory != null ? p.Category.ParentCategory.DisplayOrder : p.Category.DisplayOrder)
+                .ThenBy(p => p.Category!.ParentCategory != null ? p.Category.ParentCategory.Name : p.Category.Name)
+                .ThenBy(p => p.Category!.DisplayOrder)
+                .ThenBy(p => p.Name)
+                .ToListAsync());
         }
 
         public async Task<IActionResult> Details(int? id)
@@ -54,8 +84,10 @@ namespace DecoShoesWeb.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("ProductID,CategoryID,Name,Brand,Color,Price,StockQuantity,ImageUrl,Description,HasSizes,DiscountPercent,CreatedAt")] Product product)
+        public async Task<IActionResult> Create([Bind("ProductID,CategoryID,Name,Brand,Color,Price,StockQuantity,ImageUrl,Description,HasSizes,DiscountPercent,CreatedAt")] Product product, List<ProductSizeStockRowViewModel> newSizes, IFormFile? productImage)
         {
+            newSizes ??= new List<ProductSizeStockRowViewModel>();
+
             if (product.CreatedAt == default)
             {
                 product.CreatedAt = DateTime.UtcNow;
@@ -63,6 +95,33 @@ namespace DecoShoesWeb.Controllers
 
             if (ModelState.IsValid)
             {
+                var uploadedImageUrl = await SaveProductImageAsync(productImage);
+                if (!ModelState.IsValid)
+                {
+                    await LoadCategoryOptionsAsync(product.CategoryID);
+                    return View(product);
+                }
+
+                if (!string.IsNullOrWhiteSpace(uploadedImageUrl))
+                {
+                    product.ImageUrl = uploadedImageUrl;
+                }
+
+                if (product.HasSizes)
+                {
+                    var sizesToSave = newSizes
+                        .Where(size => !string.IsNullOrWhiteSpace(size.Size))
+                        .Select(size => new ProductSize
+                        {
+                            Size = size.Size!.Trim(),
+                            StockQuantity = size.StockQuantity
+                        })
+                        .ToList();
+
+                    product.ProductSizes = sizesToSave;
+                    product.StockQuantity = sizesToSave.Sum(size => size.StockQuantity);
+                }
+
                 _context.Add(product);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -91,7 +150,7 @@ namespace DecoShoesWeb.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("ProductID,CategoryID,Name,Brand,Color,Price,StockQuantity,ImageUrl,Description,HasSizes,DiscountPercent,CreatedAt")] Product product)
+        public async Task<IActionResult> Edit(int id, [Bind("ProductID,CategoryID,Name,Brand,Color,Price,StockQuantity,ImageUrl,Description,HasSizes,DiscountPercent,CreatedAt")] Product product, IFormFile? productImage)
         {
             if (id != product.ProductID)
             {
@@ -107,6 +166,18 @@ namespace DecoShoesWeb.Controllers
             {
                 try
                 {
+                    var uploadedImageUrl = await SaveProductImageAsync(productImage);
+                    if (!ModelState.IsValid)
+                    {
+                        await LoadCategoryOptionsAsync(product.CategoryID);
+                        return View(product);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(uploadedImageUrl))
+                    {
+                        product.ImageUrl = uploadedImageUrl;
+                    }
+
                     _context.Update(product);
                     await _context.SaveChangesAsync();
                 }
@@ -223,6 +294,93 @@ namespace DecoShoesWeb.Controllers
                 .ToList();
 
             ViewData["CategoryID"] = options;
+            ViewData["CategorySizeGroups"] = categories.ToDictionary(
+                c => c.CategoryID,
+                c => GetCategorySizeGroup(c));
+        }
+
+        private async Task LoadCategoryFilterOptionsAsync(int? selectedCategoryId = null)
+        {
+            var categories = await _context.Categories
+                .Include(c => c.ParentCategory)
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.ParentCategory != null ? c.ParentCategory.DisplayOrder : c.DisplayOrder)
+                .ThenBy(c => c.ParentCategory != null ? c.ParentCategory.Name : c.Name)
+                .ThenBy(c => c.DisplayOrder)
+                .ThenBy(c => c.Name)
+                .ToListAsync();
+
+            var options = new List<SelectListItem>
+            {
+                new SelectListItem
+                {
+                    Value = "",
+                    Text = "Sve kategorije",
+                    Selected = !selectedCategoryId.HasValue
+                }
+            };
+
+            options.AddRange(categories.Select(c => new SelectListItem
+            {
+                Value = c.CategoryID.ToString(),
+                Text = c.ParentCategory == null ? c.Name : $"{c.ParentCategory.Name} > {c.Name}",
+                Selected = selectedCategoryId == c.CategoryID
+            }));
+
+            ViewData["CategoryFilterID"] = options;
+            ViewData["CurrentCategoryId"] = selectedCategoryId;
+        }
+
+        private static string GetCategorySizeGroup(Category category)
+        {
+            var root = category.ParentCategory ?? category;
+            var text = $"{root.Name} {root.Slug} {category.Name} {category.Slug}".ToLowerInvariant();
+
+            if (text.Contains("musk") || text.Contains("mušk"))
+            {
+                return "men";
+            }
+
+            if (text.Contains("zensk") || text.Contains("žensk"))
+            {
+                return "women";
+            }
+
+            return "custom";
+        }
+
+        private async Task<string?> SaveProductImageAsync(IFormFile? productImage)
+        {
+            if (productImage == null || productImage.Length == 0)
+            {
+                return null;
+            }
+
+            if (!productImage.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError("ImageUrl", "Možeš dodati samo sliku.");
+                return null;
+            }
+
+            var extension = Path.GetExtension(productImage.FileName).ToLowerInvariant();
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
+
+            if (!allowedExtensions.Contains(extension))
+            {
+                ModelState.AddModelError("ImageUrl", "Slika mora biti JPG, PNG, WEBP ili GIF.");
+                return null;
+            }
+
+            var uploadFolder = Path.Combine(_environment.WebRootPath, "images", "products");
+            Directory.CreateDirectory(uploadFolder);
+
+            var fileName = $"{Guid.NewGuid():N}{extension}";
+            var filePath = Path.Combine(uploadFolder, fileName);
+
+            await using var stream = new FileStream(filePath, FileMode.Create);
+            await productImage.CopyToAsync(stream);
+
+            return $"/images/products/{fileName}";
         }
 
         private bool ProductExists(int id)

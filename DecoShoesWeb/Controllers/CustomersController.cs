@@ -20,9 +20,27 @@ namespace DecoShoesWeb.Controllers
         }
 
         // GET: Customers
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? search)
         {
-            return View(await _context.Customers.ToListAsync());
+            var customers = _context.Customers.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                customers = customers.Where(c =>
+                    c.FirstName.Contains(term) ||
+                    c.LastName.Contains(term) ||
+                    (c.Email != null && c.Email.Contains(term)) ||
+                    (c.Phone != null && c.Phone.Contains(term)) ||
+                    (c.City != null && c.City.Contains(term)));
+            }
+
+            ViewData["CurrentSearch"] = search;
+
+            return View(await customers
+                .OrderBy(c => c.LastName)
+                .ThenBy(c => c.FirstName)
+                .ToListAsync());
         }
 
         // GET: Customers/Details/5

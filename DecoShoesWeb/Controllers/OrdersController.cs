@@ -20,10 +20,40 @@ namespace DecoShoesWeb.Controllers
         }
 
         // GET: Orders
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? customerId, string? status, string? search)
         {
-            var applicationDbContext = _context.Orders.Include(o => o.Customer);
-            return View(await applicationDbContext.ToListAsync());
+            var orders = _context.Orders
+                .Include(o => o.Customer)
+                .AsQueryable();
+
+            if (customerId.HasValue)
+            {
+                orders = orders.Where(o => o.CustomerID == customerId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                orders = orders.Where(o => o.Status == status);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                orders = orders.Where(o =>
+                    o.OrderID.ToString().Contains(term) ||
+                    (o.Customer != null && (o.Customer.FirstName.Contains(term) || o.Customer.LastName.Contains(term) ||
+                    (o.Customer.Email != null && o.Customer.Email.Contains(term)) ||
+                    (o.Customer.Phone != null && o.Customer.Phone.Contains(term)))));
+            }
+
+            await LoadCustomerOptionsAsync(customerId);
+            ViewData["CurrentSearch"] = search;
+            ViewData["CurrentStatus"] = status;
+
+            return View(await orders
+                .OrderByDescending(o => o.OrderDate)
+                .ThenByDescending(o => o.OrderID)
+                .ToListAsync());
         }
 
         // GET: Orders/Details/5
@@ -48,8 +78,8 @@ namespace DecoShoesWeb.Controllers
         // GET: Orders/Create
         public IActionResult Create()
         {
-            ViewData["CustomerID"] = new SelectList(_context.Customers, "CustomerID", "CustomerID");
-            return View();
+            LoadCustomerOptions();
+            return View(new Order { OrderDate = DateTime.Now, Status = "Nova" });
         }
 
         // POST: Orders/Create
@@ -65,7 +95,7 @@ namespace DecoShoesWeb.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["CustomerID"] = new SelectList(_context.Customers, "CustomerID", "CustomerID", order.CustomerID);
+            LoadCustomerOptions(order.CustomerID);
             return View(order);
         }
 
@@ -82,7 +112,7 @@ namespace DecoShoesWeb.Controllers
             {
                 return NotFound();
             }
-            ViewData["CustomerID"] = new SelectList(_context.Customers, "CustomerID", "CustomerID", order.CustomerID);
+            LoadCustomerOptions(order.CustomerID);
             return View(order);
         }
 
@@ -118,7 +148,7 @@ namespace DecoShoesWeb.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["CustomerID"] = new SelectList(_context.Customers, "CustomerID", "CustomerID", order.CustomerID);
+            LoadCustomerOptions(order.CustomerID);
             return View(order);
         }
 
@@ -159,6 +189,48 @@ namespace DecoShoesWeb.Controllers
         private bool OrderExists(int id)
         {
             return _context.Orders.Any(e => e.OrderID == id);
+        }
+
+        private void LoadCustomerOptions(int? selectedCustomerId = null)
+        {
+            var customers = _context.Customers
+                .OrderBy(c => c.LastName)
+                .ThenBy(c => c.FirstName)
+                .Select(c => new
+                {
+                    c.CustomerID,
+                    DisplayName = c.FirstName + " " + c.LastName + (c.Phone != null ? " - " + c.Phone : "")
+                })
+                .ToList();
+
+            ViewData["CustomerID"] = new SelectList(customers, "CustomerID", "DisplayName", selectedCustomerId);
+        }
+
+        private async Task LoadCustomerOptionsAsync(int? selectedCustomerId = null)
+        {
+            var customers = await _context.Customers
+                .OrderBy(c => c.LastName)
+                .ThenBy(c => c.FirstName)
+                .Select(c => new
+                {
+                    c.CustomerID,
+                    DisplayName = c.FirstName + " " + c.LastName + (c.Phone != null ? " - " + c.Phone : "")
+                })
+                .ToListAsync();
+
+            var options = new List<SelectListItem>
+            {
+                new SelectListItem { Value = "", Text = "Svi kupci", Selected = !selectedCustomerId.HasValue }
+            };
+
+            options.AddRange(customers.Select(c => new SelectListItem
+            {
+                Value = c.CustomerID.ToString(),
+                Text = c.DisplayName,
+                Selected = selectedCustomerId == c.CustomerID
+            }));
+
+            ViewData["CustomerFilterID"] = options;
         }
     }
 }

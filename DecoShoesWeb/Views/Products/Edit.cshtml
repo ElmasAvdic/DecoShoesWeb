@@ -1,79 +1,105 @@
-﻿@model DecoShoesWeb.Models.Product
+@model DecoShoesWeb.Models.Product
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Uredi proizvod";
 }
 
-<h1>Edit</h1>
+<h1>Uredi proizvod</h1>
 
-<h4>Product</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="ProductID" />
-            <input type="hidden" asp-for="CreatedAt" />
-            <div class="form-group">
-                <label asp-for="CategoryID" class="control-label">Podkategorija</label>
-                <select asp-for="CategoryID" class="form-control" asp-items="ViewBag.CategoryID"></select>
-                <span asp-validation-for="CategoryID" class="text-danger"></span>
+<div class="product-form-card">
+    <form asp-action="Edit" enctype="multipart/form-data">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" asp-for="ProductID" />
+        <input type="hidden" asp-for="CreatedAt" />
+
+        <div class="form-group mb-3">
+            <label asp-for="CategoryID" class="control-label">Podkategorija</label>
+            <select asp-for="CategoryID" class="form-control" asp-items="ViewBag.CategoryID"></select>
+            <span asp-validation-for="CategoryID" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="Name" class="control-label">Naziv</label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="Brand" class="control-label">Brend</label>
+            <input asp-for="Brand" class="form-control" />
+            <span asp-validation-for="Brand" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="Color" class="control-label">Boja</label>
+            <input asp-for="Color" class="form-control" />
+            <span asp-validation-for="Color" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="Price" class="control-label">Cijena</label>
+            <input asp-for="Price" class="form-control" />
+            <span asp-validation-for="Price" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="StockQuantity" class="control-label">Zaliha</label>
+            <input asp-for="StockQuantity" class="form-control" />
+            <span asp-validation-for="StockQuantity" class="text-danger"></span>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+        {
+            <div class="current-product-image mb-3">
+                <span>Trenutna slika</span>
+                <img src="@Model.ImageUrl" alt="@Model.Name" />
             </div>
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
-                <input asp-for="Name" class="form-control" />
-                <span asp-validation-for="Name" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Brand" class="control-label"></label>
-                <input asp-for="Brand" class="form-control" />
-                <span asp-validation-for="Brand" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Color" class="control-label"></label>
-                <input asp-for="Color" class="form-control" />
-                <span asp-validation-for="Color" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Price" class="control-label"></label>
-                <input asp-for="Price" class="form-control" />
-                <span asp-validation-for="Price" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="StockQuantity" class="control-label"></label>
-                <input asp-for="StockQuantity" class="form-control" />
-                <span asp-validation-for="StockQuantity" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="ImageUrl" class="control-label"></label>
-                <input asp-for="ImageUrl" class="form-control" />
-                <span asp-validation-for="ImageUrl" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Description" class="control-label"></label>
-                <input asp-for="Description" class="form-control" />
-                <span asp-validation-for="Description" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="DiscountPercent" class="control-label">Popust (%)</label>
-                <input asp-for="DiscountPercent" class="form-control" placeholder="10" />
-                <span asp-validation-for="DiscountPercent" class="text-danger"></span>
-            </div>
-            <div class="form-group form-check">
-                <label class="form-check-label">
-                    <input class="form-check-input" asp-for="HasSizes" /> @Html.DisplayNameFor(model => model.HasSizes)
-                </label>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
-    </div>
+        }
+
+        <div class="form-group mb-3">
+            <label for="productImage" class="control-label">Nova slika sa računara</label>
+            <input id="productImage" name="productImage" type="file" accept="image/*" class="form-control" />
+            <small class="form-text text-muted">Ako ne izabereš novu sliku, ostaje postojeća.</small>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="ImageUrl" class="control-label">Link slike</label>
+            <input asp-for="ImageUrl" class="form-control" />
+            <span asp-validation-for="ImageUrl" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="Description" class="control-label">Opis proizvoda za korisnike</label>
+            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+            <small class="form-text text-muted">Ovaj opis će kupci vidjeti na stranici proizvoda.</small>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="DiscountPercent" class="control-label">Popust (%)</label>
+            <input asp-for="DiscountPercent" class="form-control" placeholder="10" />
+            <span asp-validation-for="DiscountPercent" class="text-danger"></span>
+        </div>
+
+        <div class="form-group form-check mb-3">
+            <label class="form-check-label">
+                <input class="form-check-input" asp-for="HasSizes" /> Proizvod ima brojeve/veličine
+            </label>
+        </div>
+
+        <div class="form-actions">
+            <input type="submit" value="Sačuvaj" class="btn btn-primary" />
+            <a asp-action="Index" class="btn btn-outline-secondary">Nazad na proizvode</a>
+        </div>
+    </form>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
+<style>
+    .product-form-card { max-width: 680px; border: 1px solid #f7c9cf; border-radius: 6px; padding: 20px; background: #fff; }
+    .form-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .current-product-image span { display: block; font-weight: 800; margin-bottom: 8px; }
+    .current-product-image img { max-width: 180px; max-height: 180px; object-fit: contain; border: 1px solid #f7c9cf; border-radius: 6px; padding: 8px; background: #fff1f3; }
+</style>
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}

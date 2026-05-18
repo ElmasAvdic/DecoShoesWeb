@@ -1,59 +1,41 @@
 ﻿@model IEnumerable<DecoShoesWeb.Models.OrderItem>
 
 @{
-    ViewData["Title"] = "Stavke Narudžbine";
+    ViewData["Title"] = "Stavke narudžbe";
+    var currentSearch = ViewData["CurrentSearch"] as string ?? string.Empty;
 }
 
-<h1>Stavke Narudžbine</h1>
+<div class="admin-page-header">
+    <div><h1>Stavke narudžbe</h1><p>Proizvodi unutar narudžbi. Ovdje se skida i vraća lager.</p></div>
+    <a asp-action="Create" class="btn btn-primary">Dodaj stavku</a>
+</div>
 
-<p>
-    <a asp-action="Create">Dodaj Novu</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                Narudžbina
-            </th>
-            <th>
-                Proizvod
-            </th>
-            <th>
-                Veličina
-            </th>
-            <th>
-                Količina
-            </th>
-            <th>
-                Cena po Komadu
-            </th>
-            <th></th>
-        </tr>
-    </thead>
+<form asp-action="Index" method="get" class="admin-filter-bar items-filter">
+    <div class="filter-field"><label for="orderId">Narudžba</label><select id="orderId" name="orderId" class="form-select" asp-items="ViewBag.OrderFilterID"></select></div>
+    <div class="filter-field"><label for="productId">Proizvod</label><select id="productId" name="productId" class="form-select" asp-items="ViewBag.ProductFilterID"></select></div>
+    <div class="filter-field"><label for="search">Pretraga</label><input id="search" name="search" value="@currentSearch" class="form-control" placeholder="Narudžba, kupac, proizvod ili broj..." /></div>
+    <div class="filter-actions"><button type="submit" class="btn btn-primary">Prikaži</button><a asp-action="Index" class="btn btn-outline-secondary">Očisti</a></div>
+</form>
+
+<table class="table align-middle admin-table mt-4">
+    <thead><tr><th>Narudžba</th><th>Kupac</th><th>Proizvod</th><th>Broj</th><th>Količina</th><th>Cijena</th><th>Ukupno</th><th></th></tr></thead>
     <tbody>
-@foreach (var item in Model) {
+@foreach (var item in Model)
+{
+    var total = item.Quantity * item.UnitPrice;
+    var customerName = item.Order?.Customer != null ? item.Order.Customer.FirstName + " " + item.Order.Customer.LastName : "-";
         <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Order.OrderID)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Product.Name)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Size)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Quantity)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.UnitPrice)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.OrderItemID">Uredi</a> |
-                <a asp-action="Details" asp-route-id="@item.OrderItemID">Detalji</a> |
-                <a asp-action="Delete" asp-route-id="@item.OrderItemID">Obriši</a>
-            </td>
+            <td><strong>#@item.OrderID</strong></td>
+            <td>@customerName</td>
+            <td>@(item.Product?.Name ?? "-")</td>
+            <td>@(item.Size ?? item.ProductSize?.Size ?? "-")</td>
+            <td>@item.Quantity</td>
+            <td>@item.UnitPrice.ToString("0.00") KM</td>
+            <td><strong>@total.ToString("0.00") KM</strong></td>
+            <td class="text-end admin-actions"><a asp-action="Edit" asp-route-id="@item.OrderItemID" class="btn btn-sm btn-outline-secondary">Uredi</a><a asp-action="Details" asp-route-id="@item.OrderItemID" class="btn btn-sm btn-outline-secondary">Detalji</a><a asp-action="Delete" asp-route-id="@item.OrderItemID" class="btn btn-sm btn-danger">Obriši</a></td>
         </tr>
 }
     </tbody>
 </table>
+@if (!Model.Any()) { <div class="empty-state">Nema stavki za izabrani filter.</div> }
+<style>.admin-page-header{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:18px}.admin-page-header h1{margin-bottom:4px}.admin-page-header p{margin:0;color:#697386}.admin-filter-bar{display:grid;gap:14px;align-items:end;padding:16px;border:1px solid #f7c9cf;border-radius:6px;background:#fff1f3}.items-filter{grid-template-columns:minmax(200px,280px) minmax(220px,280px) minmax(240px,1fr) auto}.filter-field label{display:block;font-weight:800;margin-bottom:6px}.filter-actions{display:flex;gap:8px;white-space:nowrap}.admin-table thead{background:#d82736;color:#fff}.admin-table tbody tr:hover{background:#fff1f3}.admin-actions{white-space:nowrap}.admin-table .btn-danger{background:#d82736;border-color:#d82736}.empty-state{padding:18px;border:1px solid #f7c9cf;border-radius:6px;background:#fff1f3;font-weight:800;color:#6f3741}@@media(max-width:1000px){.items-filter{grid-template-columns:1fr}.admin-page-header{align-items:start;flex-direction:column}}</style>

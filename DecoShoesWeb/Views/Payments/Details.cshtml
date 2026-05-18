@@ -1,48 +1,5 @@
 ﻿@model DecoShoesWeb.Models.Payment
-
-@{
-    ViewData["Title"] = "Details";
-}
-
-<h1>Details</h1>
-
-<div>
-    <h4>Payment</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Order)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Order.OrderID)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PaymentDate)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PaymentDate)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Amount)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Amount)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PaymentMethod)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PaymentMethod)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.PaymentStatus)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.PaymentStatus)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.PaymentID">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+@{ ViewData["Title"] = "Detalji plaćanja"; }
+<h1>Detalji plaćanja</h1>
+<div class="details-card"><div class="details-grid"><div><span>Narudžba</span><strong>#@Model.OrderID</strong></div><div><span>Datum</span><strong>@Model.PaymentDate.ToString("dd.MM.yyyy HH:mm")</strong></div><div><span>Iznos</span><strong>@Model.Amount.ToString("0.00") KM</strong></div><div><span>Način</span><strong>@(Model.PaymentMethod ?? "-")</strong></div><div><span>Status</span><strong>@(Model.PaymentStatus ?? "-")</strong></div></div><div class="details-actions"><a asp-action="Edit" asp-route-id="@Model.PaymentID" class="btn btn-primary">Uredi</a><a asp-action="Index" class="btn btn-outline-secondary">Nazad na plaćanja</a></div></div>
+<style>.details-card{max-width:850px;border:1px solid #f7c9cf;border-radius:6px;padding:20px;background:#fff}.details-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.details-grid div{background:#fff1f3;border-radius:6px;padding:14px}.details-grid span{display:block;color:#697386;font-weight:700}.details-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}@@media(max-width:700px){.details-grid{grid-template-columns:1fr}}</style>

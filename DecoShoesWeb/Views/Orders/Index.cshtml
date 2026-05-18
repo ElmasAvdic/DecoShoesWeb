@@ -2,52 +2,43 @@
 
 @{
     ViewData["Title"] = "Narudžbine";
+    var currentSearch = ViewData["CurrentSearch"] as string ?? string.Empty;
+    var currentStatus = ViewData["CurrentStatus"] as string ?? string.Empty;
 }
 
-<h1>Narudžbine</h1>
+<div class="admin-page-header">
+    <div><h1>Narudžbine</h1><p>Pregled narudžbi po kupcu, datumu, statusu i iznosu.</p></div>
+    <a asp-action="Create" class="btn btn-primary">Dodaj narudžbu</a>
+</div>
 
-<p>
-    <a asp-action="Create">Dodaj Novu</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                Kupac
-            </th>
-            <th>
-                Datum Narudžbe
-            </th>
-            <th>
-                Ukupno
-            </th>
-            <th>
-                Status
-            </th>
-            <th></th>
-        </tr>
-    </thead>
+<form asp-action="Index" method="get" class="admin-filter-bar orders-filter">
+    <div class="filter-field"><label for="customerId">Kupac</label><select id="customerId" name="customerId" class="form-select" asp-items="ViewBag.CustomerFilterID"></select></div>
+    <div class="filter-field"><label for="status">Status</label><select id="status" name="status" class="form-select"><option value="">Svi statusi</option><option value="Nova" selected="@(currentStatus == "Nova" ? "selected" : null)">Nova</option><option value="U obradi" selected="@(currentStatus == "U obradi" ? "selected" : null)">U obradi</option><option value="Poslano" selected="@(currentStatus == "Poslano" ? "selected" : null)">Poslano</option><option value="Završeno" selected="@(currentStatus == "Završeno" ? "selected" : null)">Završeno</option><option value="Otkazano" selected="@(currentStatus == "Otkazano" ? "selected" : null)">Otkazano</option></select></div>
+    <div class="filter-field"><label for="search">Pretraga</label><input id="search" name="search" value="@currentSearch" class="form-control" placeholder="Broj narudžbe, kupac, telefon..." /></div>
+    <div class="filter-actions"><button type="submit" class="btn btn-primary">Prikaži</button><a asp-action="Index" class="btn btn-outline-secondary">Očisti</a></div>
+</form>
+
+<table class="table align-middle admin-table mt-4">
+    <thead><tr><th>Narudžba</th><th>Kupac</th><th>Datum</th><th>Iznos</th><th>Status</th><th></th></tr></thead>
     <tbody>
-@foreach (var item in Model) {
+@foreach (var item in Model)
+{
         <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.Customer.CustomerID)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.OrderDate)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.TotalAmount)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Status)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.OrderID">Uredi</a> |
-                <a asp-action="Details" asp-route-id="@item.OrderID">Detalji</a> |
-                <a asp-action="Delete" asp-route-id="@item.OrderID">Obriši</a>
+            <td><strong>#@item.OrderID</strong></td>
+            <td>@(item.Customer != null ? item.Customer.FirstName + " " + item.Customer.LastName : "-")</td>
+            <td>@item.OrderDate.ToString("dd.MM.yyyy HH:mm")</td>
+            <td>@item.TotalAmount.ToString("0.00") KM</td>
+            <td><span class="status-pill">@(item.Status ?? "-")</span></td>
+            <td class="text-end admin-actions">
+                <a asp-controller="OrderItems" asp-action="Index" asp-route-orderId="@item.OrderID" class="btn btn-sm btn-outline-primary">Stavke</a>
+                <a asp-controller="Payments" asp-action="Index" asp-route-orderId="@item.OrderID" class="btn btn-sm btn-outline-primary">Plaćanja</a>
+                <a asp-action="Edit" asp-route-id="@item.OrderID" class="btn btn-sm btn-outline-secondary">Uredi</a>
+                <a asp-action="Details" asp-route-id="@item.OrderID" class="btn btn-sm btn-outline-secondary">Detalji</a>
+                <a asp-action="Delete" asp-route-id="@item.OrderID" class="btn btn-sm btn-danger">Obriši</a>
             </td>
         </tr>
 }
     </tbody>
 </table>
+@if (!Model.Any()) { <div class="empty-state">Nema narudžbi za izabrani filter.</div> }
+<style>.admin-page-header{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:18px}.admin-page-header h1{margin-bottom:4px}.admin-page-header p{margin:0;color:#697386}.admin-filter-bar{display:grid;gap:14px;align-items:end;padding:16px;border:1px solid #f7c9cf;border-radius:6px;background:#fff1f3}.orders-filter{grid-template-columns:minmax(200px,280px) minmax(150px,190px) minmax(240px,1fr) auto}.filter-field label{display:block;font-weight:800;margin-bottom:6px}.filter-actions{display:flex;gap:8px;white-space:nowrap}.admin-table thead{background:#d82736;color:#fff}.admin-table tbody tr:hover{background:#fff1f3}.admin-actions{white-space:nowrap}.admin-actions .btn-outline-primary{border-color:#d82736;color:#d82736}.admin-actions .btn-outline-primary:hover{background:#d82736;color:#fff}.admin-table .btn-danger{background:#d82736;border-color:#d82736}.status-pill{display:inline-block;padding:5px 10px;border-radius:999px;background:#fff1f3;color:#a91524;font-weight:800}.empty-state{padding:18px;border:1px solid #f7c9cf;border-radius:6px;background:#fff1f3;font-weight:800;color:#6f3741}@@media(max-width:1000px){.orders-filter{grid-template-columns:1fr}.admin-page-header{align-items:start;flex-direction:column}}</style>

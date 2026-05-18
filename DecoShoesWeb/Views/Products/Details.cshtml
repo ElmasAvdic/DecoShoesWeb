@@ -1,12 +1,11 @@
-@model DecoShoesWeb.Models.Product
+Ôªø@model DecoShoesWeb.Models.Product
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = Model.Name;
 }
 
 <h1>@Model.Name</h1>
 
-<!-- Prikaûi TempData poruku ako postoji -->
 @if (TempData["Message"] != null)
 {
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -20,11 +19,11 @@
         <div class="main-image-box">
             @if (!string.IsNullOrEmpty(Model.ImageUrl))
             {
-                <img src="@Model.ImageUrl" class="main-product-image" />
+                <img src="@Model.ImageUrl" class="main-product-image" alt="@Model.Name" />
             }
             else
             {
-                <div class="no-image">No image</div>
+                <div class="no-image">Nema slike</div>
             }
         </div>
     </div>
@@ -35,7 +34,6 @@
         @if (Model.DiscountPercent != null && Model.DiscountPercent > 0)
         {
             var discountedPrice = Model.Price - (Model.Price * Model.DiscountPercent.Value / 100);
-
             <p class="old-price">@Model.Price BAM</p>
             <p class="details-price">@discountedPrice.ToString("0.00") BAM</p>
         }
@@ -46,20 +44,19 @@
 
         <hr />
 
-        <!-- Error Message -->
         <div id="stockMessage" class="alert alert-danger" style="display: none; margin-bottom: 15px;">
             <span id="stockMessageText"></span>
         </div>
 
-        <form asp-controller="Cart" asp-action="AddToCart" method="post" onsubmit="return validateForm()">
+        <form asp-controller="Cart" asp-action="AddToCart" method="post" onsubmit="return validateForm()" class="cart-form-panel">
             <input type="hidden" name="productId" value="@Model.ProductID" />
 
             @if (Model.HasSizes)
             {
-                <h5>Izaberi veliËinu</h5>
+                <h5>Izaberi veliƒçinu</h5>
 
                 <div class="size-grid">
-                    @foreach (var size in Model.ProductSizes)
+                    @foreach (var size in Model.ProductSizes.OrderBy(s => s.Size))
                     {
                         if (size.StockQuantity > 0)
                         {
@@ -83,7 +80,7 @@
             }
 
             <div class="quantity-box">
-                <label>KoliËina</label>
+                <label>Koliƒçina</label>
                 <input type="number" name="quantity" value="1" min="1" class="form-control" id="quantityInput" onchange="validateQuantity()" />
             </div>
 
@@ -92,9 +89,18 @@
             </button>
         </form>
 
-        <a asp-action="Index" class="back-link">Nazad na proizvode</a>
+        @if (!string.IsNullOrWhiteSpace(Model.Description))
+        {
+            <div class="customer-description">
+                <strong>Opis</strong>
+                <p>@Model.Description</p>
+            </div>
+        }
+
+        <a asp-action="Index" class="btn btn-outline-secondary back-products-btn">Nazad na proizvode</a>
     </div>
 </div>
+
 <style>
     .product-details-page {
         display: grid;
@@ -116,12 +122,6 @@
         max-width: 90%;
         max-height: 560px;
         object-fit: contain;
-    }
-
-    .product-details-info h1 {
-        font-size: 30px;
-        font-weight: 700;
-        margin-bottom: 4px;
     }
 
     .product-category {
@@ -179,9 +179,9 @@
         margin-bottom: 20px;
     }
 
-        .quantity-box input {
-            max-width: 120px;
-        }
+    .quantity-box input {
+        max-width: 120px;
+    }
 
     .add-cart-btn {
         width: 100%;
@@ -190,9 +190,34 @@
         border-radius: 30px;
     }
 
-    .back-link {
-        display: inline-block;
-        margin-top: 20px;
+    .customer-description {
+        margin-top: 22px;
+        padding: 16px 18px;
+        background: #fff1f3;
+        border: 1px solid #f7c9cf;
+        border-radius: 6px;
+    }
+
+    .customer-description strong {
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .customer-description p {
+        margin: 0;
+    }
+
+    .back-products-btn {
+        margin-top: 22px;
+        border-color: #d82736;
+        color: #a91524;
+        font-weight: 700;
+    }
+
+    .back-products-btn:hover {
+        background: #fff1f3;
+        border-color: #a91524;
+        color: #8f1420;
     }
 
     #stockMessage {
@@ -212,6 +237,16 @@
         opacity: 0.6;
         cursor: not-allowed !important;
     }
+
+    @@media (max-width: 900px) {
+        .product-details-page {
+            grid-template-columns: 1fr;
+        }
+
+        .main-image-box {
+            min-height: 360px;
+        }
+    }
 </style>
 
 <script>
@@ -225,7 +260,7 @@
         messageDiv.style.display = 'none';
 
         if (quantity < 1) {
-            messageText.textContent = 'KoliËina mora biti najmanje 1!';
+            messageText.textContent = 'Koliƒçina mora biti najmanje 1!';
             messageDiv.style.display = 'block';
             return false;
         }
@@ -243,17 +278,16 @@
         }
 
         if (!selectedSize) {
-            messageText.textContent = 'Molimo izaberite veliËinu!';
+            messageText.textContent = 'Molimo izaberite veliƒçinu!';
             messageDiv.style.display = 'block';
             return false;
         }
 
-        // Provera dostupnosti
         const stock = parseInt(selectedSize.getAttribute('data-stock'));
         const size = selectedSize.getAttribute('data-size');
 
         if (quantity > stock) {
-            messageText.textContent = `Nema dovoljno dostupnih komada za veliËinu ${size}. Dostupno je: ${stock}`;
+            messageText.textContent = `Nema dovoljno dostupnih komada za veliƒçinu ${size}. Dostupno je: ${stock}`;
             messageDiv.style.display = 'block';
             return false;
         }
@@ -278,52 +312,35 @@
                 messageText.textContent = `Nema dovoljno dostupnih komada. Dostupno je: ${stock}`;
                 messageDiv.style.display = 'block';
                 submitBtn.disabled = true;
-                submitBtn.style.opacity = '0.5';
-                submitBtn.style.cursor = 'not-allowed';
             } else if (quantity < 1) {
-                messageText.textContent = 'KoliËina mora biti najmanje 1!';
+                messageText.textContent = 'Koliƒçina mora biti najmanje 1!';
                 messageDiv.style.display = 'block';
                 submitBtn.disabled = true;
-                submitBtn.style.opacity = '0.5';
-                submitBtn.style.cursor = 'not-allowed';
             } else {
                 submitBtn.disabled = false;
-                submitBtn.style.opacity = '1';
-                submitBtn.style.cursor = 'pointer';
             }
         } else if (selectedSize) {
             const stock = parseInt(selectedSize.getAttribute('data-stock'));
             const size = selectedSize.getAttribute('data-size');
 
             if (quantity > stock) {
-                messageText.textContent = `Nema dovoljno dostupnih komada za veliËinu ${size}. Dostupno je: ${stock}`;
+                messageText.textContent = `Nema dovoljno dostupnih komada za veliƒçinu ${size}. Dostupno je: ${stock}`;
                 messageDiv.style.display = 'block';
                 submitBtn.disabled = true;
-                submitBtn.style.opacity = '0.5';
-                submitBtn.style.cursor = 'not-allowed';
             } else if (quantity < 1) {
-                messageText.textContent = 'KoliËina mora biti najmanje 1!';
+                messageText.textContent = 'Koliƒçina mora biti najmanje 1!';
                 messageDiv.style.display = 'block';
                 submitBtn.disabled = true;
-                submitBtn.style.opacity = '0.5';
-                submitBtn.style.cursor = 'not-allowed';
             } else {
                 submitBtn.disabled = false;
-                submitBtn.style.opacity = '1';
-                submitBtn.style.cursor = 'pointer';
             }
         }
     }
 
-    // Dodaj event listener na sve radio buttons
     document.querySelectorAll('.size-input').forEach(input => {
-        input.addEventListener('change', function() {
-            validateQuantity();
-        });
+        input.addEventListener('change', validateQuantity);
     });
 
-    // Inicijalna validacija
-    window.addEventListener('load', function() {
-        validateQuantity();
-    });
+    window.addEventListener('load', validateQuantity);
 </script>
+

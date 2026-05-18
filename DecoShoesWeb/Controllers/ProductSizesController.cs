@@ -20,14 +20,49 @@ namespace DecoShoesWeb.Controllers
         }
 
         // GET: ProductSizes
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? productId, int? categoryId, string? search)
         {
-            var applicationDbContext = _context.ProductSizes
+            var productSizes = _context.ProductSizes
                 .Include(p => p.Product)
-                .OrderBy(p => p.Product!.Name)
-                .ThenBy(p => p.Size);
+                .ThenInclude(p => p!.Category)
+                .ThenInclude(c => c!.ParentCategory)
+                .AsQueryable();
 
-            return View(await applicationDbContext.ToListAsync());
+            if (productId.HasValue)
+            {
+                productSizes = productSizes.Where(ps => ps.ProductID == productId.Value);
+            }
+
+            if (categoryId.HasValue)
+            {
+                productSizes = productSizes.Where(ps =>
+                    ps.Product != null &&
+                    (ps.Product.CategoryID == categoryId.Value || ps.Product.Category!.ParentCategoryID == categoryId.Value));
+            }
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                productSizes = productSizes.Where(ps =>
+                    ps.Size.Contains(term) ||
+                    (ps.Product != null && ps.Product.Name.Contains(term)) ||
+                    (ps.Product != null && ps.Product.Brand != null && ps.Product.Brand.Contains(term)) ||
+                    (ps.Product != null && ps.Product.Color != null && ps.Product.Color.Contains(term)) ||
+                    (ps.Product != null && ps.Product.Category != null && ps.Product.Category.Name.Contains(term)) ||
+                    (ps.Product != null && ps.Product.Category != null && ps.Product.Category.ParentCategory != null && ps.Product.Category.ParentCategory.Name.Contains(term)));
+            }
+
+            await LoadProductFilterOptionsAsync(productId);
+            await LoadCategoryFilterOptionsAsync(categoryId);
+            ViewData["CurrentSearch"] = search;
+
+            return View(await productSizes
+                .OrderBy(p => p.Product!.Category!.ParentCategory != null ? p.Product.Category.ParentCategory.DisplayOrder : p.Product.Category.DisplayOrder)
+                .ThenBy(p => p.Product!.Category!.ParentCategory != null ? p.Product.Category.ParentCategory.Name : p.Product.Category.Name)
+                .ThenBy(p => p.Product!.Category!.DisplayOrder)
+                .ThenBy(p => p.Product!.Name)
+                .ThenBy(p => p.Size)
+                .ToListAsync());
         }
 
         public async Task<IActionResult> Manage(int productId)
@@ -150,7 +185,7 @@ namespace DecoShoesWeb.Controllers
         // GET: ProductSizes/Create
         public IActionResult Create()
         {
-            ViewData["ProductID"] = new SelectList(_context.Products, "ProductID", "Name");
+            LoadProductOptions();
             return View();
         }
 
@@ -168,7 +203,7 @@ namespace DecoShoesWeb.Controllers
                 await UpdateProductStockQuantity(productSize.ProductID);
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["ProductID"] = new SelectList(_context.Products, "ProductID", "Name", productSize.ProductID);
+            LoadProductOptions(productSize.ProductID);
             return View(productSize);
         }
 
@@ -185,7 +220,7 @@ namespace DecoShoesWeb.Controllers
             {
                 return NotFound();
             }
-            ViewData["ProductID"] = new SelectList(_context.Products, "ProductID", "Name", productSize.ProductID);
+            LoadProductOptions(productSize.ProductID);
             return View(productSize);
         }
 
@@ -222,7 +257,7 @@ namespace DecoShoesWeb.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["ProductID"] = new SelectList(_context.Products, "ProductID", "Name", productSize.ProductID);
+            LoadProductOptions(productSize.ProductID);
             return View(productSize);
         }
 
@@ -267,6 +302,73 @@ namespace DecoShoesWeb.Controllers
             return _context.ProductSizes.Any(e => e.ProductSizeID == id);
         }
 
+        private void LoadProductOptions(int? selectedProductId = null)
+        {
+            ViewData["ProductID"] = new SelectList(
+                _context.Products.OrderBy(p => p.Name).ToList(),
+                "ProductID",
+                "Name",
+                selectedProductId);
+        }
+
+        private async Task LoadProductFilterOptionsAsync(int? selectedProductId = null)
+        {
+            var products = await _context.Products
+                .Where(p => p.HasSizes || p.ProductSizes.Any())
+                .OrderBy(p => p.Name)
+                .ToListAsync();
+
+            var options = new List<SelectListItem>
+            {
+                new SelectListItem
+                {
+                    Value = "",
+                    Text = "Svi proizvodi",
+                    Selected = !selectedProductId.HasValue
+                }
+            };
+
+            options.AddRange(products.Select(p => new SelectListItem
+            {
+                Value = p.ProductID.ToString(),
+                Text = p.Name,
+                Selected = selectedProductId == p.ProductID
+            }));
+
+            ViewData["ProductFilterID"] = options;
+        }
+
+        private async Task LoadCategoryFilterOptionsAsync(int? selectedCategoryId = null)
+        {
+            var categories = await _context.Categories
+                .Include(c => c.ParentCategory)
+                .Where(c => c.IsActive)
+                .OrderBy(c => c.ParentCategory != null ? c.ParentCategory.DisplayOrder : c.DisplayOrder)
+                .ThenBy(c => c.ParentCategory != null ? c.ParentCategory.Name : c.Name)
+                .ThenBy(c => c.DisplayOrder)
+                .ThenBy(c => c.Name)
+                .ToListAsync();
+
+            var options = new List<SelectListItem>
+            {
+                new SelectListItem
+                {
+                    Value = "",
+                    Text = "Sve kategorije",
+                    Selected = !selectedCategoryId.HasValue
+                }
+            };
+
+            options.AddRange(categories.Select(c => new SelectListItem
+            {
+                Value = c.CategoryID.ToString(),
+                Text = c.ParentCategory == null ? c.Name : $"{c.ParentCategory.Name} > {c.Name}",
+                Selected = selectedCategoryId == c.CategoryID
+            }));
+
+            ViewData["CategoryFilterID"] = options;
+        }
+
         private ProductSizeStockManageViewModel BuildManageModel(Product product)
         {
             return new ProductSizeStockManageViewModel
@@ -298,6 +400,7 @@ namespace DecoShoesWeb.Controllers
                     .SumAsync(ps => ps.StockQuantity);
 
                 product.StockQuantity = totalStockInSizes;
+                product.HasSizes = await _context.ProductSizes.AnyAsync(ps => ps.ProductID == productId);
                 _context.Update(product);
                 await _context.SaveChangesAsync();
             }
