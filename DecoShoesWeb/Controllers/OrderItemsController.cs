@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -394,7 +394,7 @@ namespace DecoShoesWeb.Controllers
                 })
                 .ToListAsync();
 
-            var options = new List<SelectListItem> { new SelectListItem { Value = "", Text = "Sve narudžbine", Selected = !selectedOrderId.HasValue } };
+            var options = new List<SelectListItem> { new SelectListItem { Value = "", Text = "Sve narudžbe", Selected = !selectedOrderId.HasValue } };
             options.AddRange(orders.Select(o => new SelectListItem { Value = o.OrderID.ToString(), Text = o.DisplayName, Selected = selectedOrderId == o.OrderID }));
             ViewData["OrderFilterID"] = options;
         }

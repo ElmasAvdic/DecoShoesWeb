@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -221,7 +221,7 @@ namespace DecoShoesWeb.Controllers
 
             var options = new List<SelectListItem>
             {
-                new SelectListItem { Value = "", Text = "Sve narudžbine", Selected = !selectedOrderId.HasValue }
+                new SelectListItem { Value = "", Text = "Sve narudžbe", Selected = !selectedOrderId.HasValue }
             };
 
             options.AddRange(orders.Select(o => new SelectListItem

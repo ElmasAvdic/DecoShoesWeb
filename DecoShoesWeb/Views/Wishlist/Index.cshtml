@@ -2,10 +2,39 @@
 
 @{
     ViewData["Title"] = "Lista želja";
+    var addedToCart = ViewData["AddedToCart"] as bool? == true;
+    var cartCount = ViewData["CartCount"] as int? ?? 0;
 }
 
 <div class="wishlist-page">
-    <h1>Lista želja</h1>
+    <div class="wishlist-header">
+        <div>
+            <h1>Lista želja</h1>
+            <p>Sačuvani proizvodi koje možeš brzo prebaciti u korpu.</p>
+        </div>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">Nazad u kupovinu</a>
+    </div>
+
+    @if (addedToCart)
+    {
+        <div class="cart-ready-panel">
+            <div>
+                <strong>Proizvod je dodan u korpu.</strong>
+                <span>Možeš završiti narudžbu odmah ili nastaviti birati iz liste želja.</span>
+            </div>
+            <a asp-controller="Cart" asp-action="Index" class="btn btn-primary">Idi u korpu</a>
+        </div>
+    }
+    else if (cartCount > 0)
+    {
+        <div class="cart-ready-panel soft">
+            <div>
+                <strong>Imaš @cartCount proizvoda u korpi.</strong>
+                <span>Korpa je spremna kad poželiš završiti narudžbu.</span>
+            </div>
+            <a asp-controller="Cart" asp-action="Index" class="btn btn-primary">Završi narudžbu</a>
+        </div>
+    }
 
     @if (!Model.Any())
     {
@@ -20,58 +49,113 @@
         <div class="wishlist-grid">
             @foreach (var product in Model)
             {
-                <div class="wishlist-card">
-                    <strong>@product.Name</strong>
-                    <span>@product.Price.ToString("0.00") KM</span>
+                var hasDiscount = product.DiscountPercent.HasValue && product.DiscountPercent > 0;
+                var price = hasDiscount ? product.Price * (1 - product.DiscountPercent.Value / 100) : product.Price;
+                var availableSizes = product.ProductSizes
+                    .Where(size => size.StockQuantity > 0)
+                    .OrderBy(size => size.Size)
+                    .ToList();
+
+                <article class="wishlist-card">
+                    <a class="wishlist-image" asp-controller="Products" asp-action="Details" asp-route-id="@product.ProductID" asp-route-source="shop">
+                        @if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+                        {
+                            <img src="@product.ImageUrl" alt="@product.Name" />
+                        }
+                        else
+                        {
+                            <span>Nema slike</span>
+                        }
+                    </a>
+
+                    <div class="wishlist-info">
+                        <strong>@product.Name</strong>
+                        <span>@(product.Category?.Name ?? "Proizvod")</span>
+                        @if (hasDiscount)
+                        {
+                            <div><small>@product.Price.ToString("0.00") BAM</small> <b>@price.ToString("0.00") BAM</b></div>
+                        }
+                        else
+                        {
+                            <b>@price.ToString("0.00") BAM</b>
+                        }
+                    </div>
+
+                    @if (product.HasSizes)
+                    {
+                        if (availableSizes.Any())
+                        {
+                            <form asp-controller="Cart" asp-action="AddToCart" method="post" class="wishlist-cart-form">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="productId" value="@product.ProductID" />
+                                <input type="hidden" name="quantity" value="1" />
+                                <input type="hidden" name="returnUrl" value="@Url.Action("Index", "Wishlist", new { addedToCart = true })" />
+                                <select name="productSizeId" aria-label="Izaberi broj">
+                                    @foreach (var size in availableSizes)
+                                    {
+                                        <option value="@size.ProductSizeID">Broj @size.Size</option>
+                                    }
+                                </select>
+                                <button type="submit" class="btn btn-primary">Dodaj u korpu</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <button class="btn btn-secondary" disabled>Nema dostupnih brojeva</button>
+                        }
+                    }
+                    else
+                    {
+                        <form asp-controller="Cart" asp-action="AddToCart" method="post" class="wishlist-cart-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="productId" value="@product.ProductID" />
+                            <input type="hidden" name="quantity" value="1" />
+                            <input type="hidden" name="returnUrl" value="@Url.Action("Index", "Wishlist", new { addedToCart = true })" />
+                            <button type="submit" class="btn btn-primary">Dodaj u korpu</button>
+                        </form>
+                    }
+
                     <div class="wishlist-actions">
-                        <a asp-controller="Products" asp-action="Details" asp-route-id="@product.ProductID" class="btn btn-sm btn-outline-secondary">Detalji</a>
+                        <a asp-controller="Products" asp-action="Details" asp-route-id="@product.ProductID" asp-route-source="shop" class="btn btn-sm btn-outline-secondary">Detalji</a>
                         <a asp-action="Remove" asp-route-productId="@product.ProductID" class="btn btn-sm btn-danger">Ukloni</a>
                     </div>
-                </div>
+                </article>
             }
         </div>
     }
 </div>
 
 <style>
-    .wishlist-page h1 {
-        margin-bottom: 20px;
-    }
-
-    .simple-panel {
-        max-width: 720px;
-        border: 1px solid #f7c9cf;
-        border-radius: 6px;
-        padding: 28px;
-        background: #fff;
-        text-align: center;
-    }
-
-    .empty-icon {
-        color: #d82736;
-        font-size: 42px;
-        line-height: 1;
-        margin-bottom: 10px;
-    }
-
-    .wishlist-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: 16px;
-    }
-
-    .wishlist-card {
-        border: 1px solid #f7c9cf;
-        border-radius: 6px;
-        padding: 16px;
-        background: #fff;
-        display: grid;
-        gap: 10px;
-    }
-
-    .wishlist-actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
+    .wishlist-page { max-width: 1180px; margin: 0 auto; }
+    .wishlist-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 20px; }
+    .wishlist-header h1 { margin: 0 0 4px; font-weight: 900; color: #211a1d; }
+    .wishlist-header p { margin: 0; color: #6f3741; font-weight: 700; }
+    .btn-primary { background: #d82736; border-color: #d82736; font-weight: 900; }
+    .btn-primary:hover { background: #b51d2a; border-color: #b51d2a; }
+    .btn-outline-secondary { font-weight: 900; }
+    .cart-ready-panel { display: flex; justify-content: space-between; align-items: center; gap: 16px; border: 1px solid #d82736; border-radius: 6px; background: #fff1f3; padding: 16px 18px; margin-bottom: 18px; }
+    .cart-ready-panel.soft { border-color: #f7c9cf; }
+    .cart-ready-panel div { display: grid; gap: 3px; }
+    .cart-ready-panel strong { color: #211a1d; font-size: 18px; }
+    .cart-ready-panel span { color: #6f3741; font-weight: 700; }
+    .simple-panel { max-width: 720px; border: 1px solid #f7c9cf; border-radius: 6px; padding: 28px; background: #fff; text-align: center; }
+    .empty-icon { color: #d82736; font-size: 42px; line-height: 1; margin-bottom: 10px; }
+    .wishlist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 18px; }
+    .wishlist-card { border: 1px solid #f7c9cf; border-radius: 6px; background: #fff; display: grid; gap: 12px; padding: 12px; }
+    .wishlist-image { aspect-ratio: 4 / 3; background: #f6f6f6; border-radius: 4px; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #777; font-weight: 900; text-decoration: none; }
+    .wishlist-image img { width: 100%; height: 100%; object-fit: cover; }
+    .wishlist-info { display: grid; gap: 4px; }
+    .wishlist-info strong { color: #211a1d; font-size: 18px; line-height: 1.25; }
+    .wishlist-info span { color: #6f3741; font-weight: 800; font-size: 13px; }
+    .wishlist-info b { color: #211a1d; font-size: 19px; }
+    .wishlist-info small { color: #8f5962; text-decoration: line-through; margin-right: 6px; }
+    .wishlist-cart-form { display: grid; gap: 8px; }
+    .wishlist-cart-form select { border: 1px solid #d9b9be; border-radius: 4px; padding: 9px 10px; color: #211a1d; font-weight: 800; background: #fff; }
+    .wishlist-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .wishlist-actions .btn { flex: 1; min-width: 82px; }
+    .wishlist-card .btn-danger { background: #d82736; border-color: #d82736; font-weight: 900; }
+    @@media (max-width: 680px) {
+        .wishlist-header, .cart-ready-panel { align-items: flex-start; flex-direction: column; }
+        .cart-ready-panel .btn { width: 100%; }
     }
 </style>

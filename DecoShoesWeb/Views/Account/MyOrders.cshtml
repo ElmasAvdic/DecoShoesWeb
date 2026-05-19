@@ -1,0 +1,56 @@
+﻿@model IEnumerable<DecoShoesWeb.Models.Order>
+
+@{
+    ViewData["Title"] = "Moje narudžbe";
+}
+
+<div class="customer-page">
+    <div class="customer-header">
+        <h1>Moje narudžbe</h1>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">Nazad u kupovinu</a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="empty-state">Trenutno nemaš narudžbi.</div>
+    }
+    else
+    {
+        <div class="customer-table-wrap">
+            <table class="table customer-table">
+                <thead>
+                    <tr>
+                        <th>Broj</th>
+                        <th>Datum</th>
+                        <th>Status</th>
+                        <th>Iznos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in Model)
+                    {
+                        <tr>
+                            <td>#@order.OrderID</td>
+                            <td>@order.OrderDate.ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>@(order.Status ?? "-")</td>
+                            <td>@order.TotalAmount.ToString("0.00") KM</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<style>
+    .customer-page { max-width: 920px; margin: 0 auto; }
+    .customer-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+    .customer-page h1 { font-weight: 900; color: #211a1d; margin: 0; }
+    .customer-table-wrap, .empty-state { background: #fff; border: 1px solid #f7c9cf; border-radius: 6px; overflow: hidden; }
+    .empty-state { padding: 28px; color: #6f3741; font-weight: 800; }
+    .customer-table { margin: 0; }
+    .customer-table thead { background: #d82736; color: #fff; }
+    .customer-table th, .customer-table td { padding: 13px 14px; vertical-align: middle; }
+    .btn-outline-secondary { font-weight: 900; }
+    @@media (max-width: 680px) { .customer-header { align-items: flex-start; flex-direction: column; } }
+</style>

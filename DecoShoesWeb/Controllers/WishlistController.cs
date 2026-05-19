@@ -1,5 +1,6 @@
 using System.Text.Json;
 using DecoShoesWeb.Data;
+using DecoShoesWeb.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,13 +15,21 @@ namespace DecoShoesWeb.Controllers
             _context = context;
         }
 
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(bool addedToCart = false)
         {
             var wishlist = GetWishlist();
             var products = await _context.Products
                 .Include(p => p.Category)
+                .Include(p => p.ProductSizes)
                 .Where(p => wishlist.Contains(p.ProductID))
                 .ToListAsync();
+
+            products = products
+                .OrderBy(p => wishlist.IndexOf(p.ProductID))
+                .ToList();
+
+            ViewData["AddedToCart"] = addedToCart;
+            ViewData["CartCount"] = GetCart().Sum(item => item.Quantity);
 
             return View(products);
         }
@@ -72,6 +81,14 @@ namespace DecoShoesWeb.Controllers
         private void SaveWishlist(List<int> wishlist)
         {
             HttpContext.Session.SetString("Wishlist", JsonSerializer.Serialize(wishlist));
+        }
+
+        private List<CartItem> GetCart()
+        {
+            var cartJson = HttpContext.Session.GetString("Cart");
+            return string.IsNullOrEmpty(cartJson)
+                ? new List<CartItem>()
+                : JsonSerializer.Deserialize<List<CartItem>>(cartJson) ?? new List<CartItem>();
         }
     }
 }

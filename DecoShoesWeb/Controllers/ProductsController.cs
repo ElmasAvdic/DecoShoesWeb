@@ -73,6 +73,30 @@ namespace DecoShoesWeb.Controllers
                 return NotFound();
             }
 
+            var similarProducts = await _context.Products
+                .Include(p => p.Category)
+                .Where(p => p.ProductID != product.ProductID && p.CategoryID == product.CategoryID)
+                .OrderBy(p => p.Name)
+                .Take(12)
+                .ToListAsync();
+
+            if (!similarProducts.Any() && product.Category?.ParentCategoryID != null)
+            {
+                var siblingCategoryIds = await _context.Categories
+                    .Where(c => c.ParentCategoryID == product.Category.ParentCategoryID)
+                    .Select(c => c.CategoryID)
+                    .ToListAsync();
+
+                similarProducts = await _context.Products
+                    .Include(p => p.Category)
+                    .Where(p => p.ProductID != product.ProductID && siblingCategoryIds.Contains(p.CategoryID))
+                    .OrderBy(p => p.Name)
+                    .Take(12)
+                    .ToListAsync();
+            }
+
+            ViewData["SimilarProducts"] = similarProducts;
+
             return View(product);
         }
 

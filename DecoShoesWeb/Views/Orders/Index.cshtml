@@ -1,19 +1,19 @@
-﻿@model IEnumerable<DecoShoesWeb.Models.Order>
+@model IEnumerable<DecoShoesWeb.Models.Order>
 
 @{
-    ViewData["Title"] = "Narudžbine";
+    ViewData["Title"] = "Narudžbe";
     var currentSearch = ViewData["CurrentSearch"] as string ?? string.Empty;
     var currentStatus = ViewData["CurrentStatus"] as string ?? string.Empty;
 }
 
 <div class="admin-page-header">
-    <div><h1>Narudžbine</h1><p>Pregled narudžbi po kupcu, datumu, statusu i iznosu.</p></div>
+    <div><h1>Narudžbe</h1><p>Pregled narudžbi po kupcu, datumu, statusu i iznosu.</p></div>
     <a asp-action="Create" class="btn btn-primary">Dodaj narudžbu</a>
 </div>
 
 <form asp-action="Index" method="get" class="admin-filter-bar orders-filter">
     <div class="filter-field"><label for="customerId">Kupac</label><select id="customerId" name="customerId" class="form-select" asp-items="ViewBag.CustomerFilterID"></select></div>
-    <div class="filter-field"><label for="status">Status</label><select id="status" name="status" class="form-select"><option value="">Svi statusi</option><option value="Nova" selected="@(currentStatus == "Nova" ? "selected" : null)">Nova</option><option value="U obradi" selected="@(currentStatus == "U obradi" ? "selected" : null)">U obradi</option><option value="Poslano" selected="@(currentStatus == "Poslano" ? "selected" : null)">Poslano</option><option value="Završeno" selected="@(currentStatus == "Završeno" ? "selected" : null)">Završeno</option><option value="Otkazano" selected="@(currentStatus == "Otkazano" ? "selected" : null)">Otkazano</option></select></div>
+    <div class="filter-field"><label for="status">Status</label><select id="status" name="status" class="form-select"><option value="">Svi statusi</option><option value="Nova" selected="@(currentStatus == "Nova" ? "selected" : null)">Nova</option><option value="Čeka plaćanje" selected="@(currentStatus == "Čeka plaćanje" ? "selected" : null)">Čeka plaćanje</option><option value="U obradi" selected="@(currentStatus == "U obradi" ? "selected" : null)">U obradi</option><option value="Poslano" selected="@(currentStatus == "Poslano" ? "selected" : null)">Poslano</option><option value="Završeno" selected="@(currentStatus == "Završeno" ? "selected" : null)">Završeno</option><option value="Otkazano" selected="@(currentStatus == "Otkazano" ? "selected" : null)">Otkazano</option></select></div>
     <div class="filter-field"><label for="search">Pretraga</label><input id="search" name="search" value="@currentSearch" class="form-control" placeholder="Broj narudžbe, kupac, telefon..." /></div>
     <div class="filter-actions"><button type="submit" class="btn btn-primary">Prikaži</button><a asp-action="Index" class="btn btn-outline-secondary">Očisti</a></div>
 </form>

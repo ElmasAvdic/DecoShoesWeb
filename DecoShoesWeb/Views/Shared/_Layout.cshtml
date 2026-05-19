@@ -1,3 +1,22 @@
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var adminControllers = new[] { "Categories", "Products", "ProductSizes", "Customers", "Orders", "OrderItems", "Payments" };
+    var isShopProductDetails = currentController == "Products"
+        && currentAction == "Details"
+        && Context.Request.Query["source"].ToString() != "admin";
+    var usesAdminBack = adminControllers.Contains(currentController) && !isShopProductDetails;
+    var adminBackTarget = currentAction == "Index"
+        ? Url.Action("Index", "Home")
+        : Url.Action("Index", currentController);
+    var customerBackControllers = new[] { "Account", "Cart", "Wishlist" };
+    var usesCustomerBack = customerBackControllers.Contains(currentController)
+        || (currentController == "Home" && currentAction != "Index")
+        || isShopProductDetails;
+    var customerBackTarget = Url.Action("Index", "Home");
+    var backTarget = usesAdminBack ? adminBackTarget : (usesCustomerBack ? customerBackTarget : null);
+    var usesSmartBack = !string.IsNullOrWhiteSpace(backTarget);
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,60 +38,20 @@
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Home" asp-action="Index">
-                                Početna
-                            </a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Categories" asp-action="Index">
-                                Kategorije
-                            </a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Products" asp-action="Index">
-                                Proizvodi
-                            </a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="ProductSizes" asp-action="Index">
-                                Veličine Proizvoda
-                            </a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Customers" asp-action="Index">
-                                Kupci
-                            </a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Orders" asp-action="Index">
-                                Narudžbine
-                            </a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="OrderItems" asp-action="Index">
-                                Stavke Narudžbine
-                            </a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Payments" asp-action="Index">
-                                Plaćanja
-                            </a>
-                        </li>
-
+                        <li class="nav-item"><a class="nav-link text-dark" asp-controller="Home" asp-action="Index">Početna</a></li>
+                        <li class="nav-item"><a class="nav-link text-dark" asp-controller="Categories" asp-action="Index">Kategorije</a></li>
+                        <li class="nav-item"><a class="nav-link text-dark" asp-controller="Products" asp-action="Index">Proizvodi</a></li>
+                        <li class="nav-item"><a class="nav-link text-dark" asp-controller="ProductSizes" asp-action="Index">Lager po brojevima</a></li>
+                        <li class="nav-item"><a class="nav-link text-dark" asp-controller="Customers" asp-action="Index">Kupci</a></li>
+                        <li class="nav-item"><a class="nav-link text-dark" asp-controller="Orders" asp-action="Index">Narudžbe</a></li>
+                        <li class="nav-item"><a class="nav-link text-dark" asp-controller="OrderItems" asp-action="Index">Stavke narudžbe</a></li>
+                        <li class="nav-item"><a class="nav-link text-dark" asp-controller="Payments" asp-action="Index">Plaćanja</a></li>
                     </ul>
-</div>
+                </div>
             </div>
         </nav>
     </header>
+
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
@@ -84,9 +63,26 @@
             &copy; 2026 - DecoShoesWeb - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    @if (usesSmartBack)
+    {
+        <script>
+            (function () {
+                const target = '@backTarget';
+                if (!target || window.history.state?.smartBackTarget === target) {
+                    return;
+                }
+
+                window.history.pushState({ smartBackTarget: target }, '', window.location.href);
+                window.addEventListener('popstate', function () {
+                    window.location.replace(target);
+                }, { once: true });
+            })();
+        </script>
+    }
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

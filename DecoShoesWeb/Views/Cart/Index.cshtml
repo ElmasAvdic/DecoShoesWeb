@@ -1,164 +1,112 @@
 ﻿@model List<DecoShoesWeb.Models.CartItem>
 
-<div class="container mt-4">
-    <h1>🛒 Korpa</h1>
+@{
+    ViewData["Title"] = "Korpa";
+    var total = Model.Sum(item => item.Total);
+}
+
+<div class="cart-page">
+    <div class="cart-header">
+        <h1>Korpa</h1>
+    </div>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Message"]</div>
+    }
 
     @if (!Model.Any())
     {
-        <div class="text-center py-5">
-            <p class="fs-5 mb-4">Vaša korpa je prazna.</p>
-            <a asp-controller="Products" asp-action="Index" class="btn btn-primary btn-lg">
-                ← Nazad u kupovinu
-            </a>
+        <div class="empty-cart">
+            <h2>Vaša korpa je prazna</h2>
+            <p>Dodajte proizvod u korpu i pojavit će se ovdje.</p>
+            <a asp-controller="Home" asp-action="Index" class="btn btn-primary">Nazad u kupovinu</a>
         </div>
     }
     else
     {
-        <table class="table align-middle">
-            <thead>
-                <tr>
-                    <th>Slika</th>
-                    <th>Proizvod</th>
-                    <th>Veličina</th>
-                    <th>Količina</th>
-                    <th>Cena</th>
-                    <th>Ukupno</th>
-                    <th></th>
-                </tr>
-            </thead>
-
-            <tbody>
+        <div class="cart-layout">
+            <div class="cart-items">
                 @foreach (var item in Model)
                 {
-                    <tr>
-                        <td style="width:120px;">
-                            <img src="@item.ImageUrl" style="width:100px; object-fit: contain;" alt="@item.ProductName" />
-                        </td>
-
-                        <td>
-                            <strong>@item.ProductName</strong>
-                        </td>
-
-                        <td>
-                            @if (!string.IsNullOrWhiteSpace(item.Size))
+                    <div class="cart-item">
+                        <div class="cart-image">
+                            @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
                             {
-                                <span class="badge bg-secondary">@item.Size</span>
+                                <img src="@item.ImageUrl" alt="@item.ProductName" />
                             }
                             else
                             {
-                                <span class="text-muted">-</span>
+                                <span>Nema slike</span>
                             }
-                        </td>
+                        </div>
 
-                        <td>
-                            <span class="badge bg-info">@item.Quantity x</span>
-                        </td>
+                        <div class="cart-info">
+                            <strong>@item.ProductName</strong>
+                            <span>@(string.IsNullOrWhiteSpace(item.Size) ? "Bez veličine" : $"Veličina: {item.Size}")</span>
+                            <span>@item.Price.ToString("0.00") BAM po komadu</span>
+                        </div>
 
-                        <td>@item.Price.ToString("0.00") BAM</td>
+                        <form asp-action="UpdateQuantity" method="post" class="quantity-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="productId" value="@item.ProductId" />
+                            <input type="hidden" name="productSizeId" value="@item.ProductSizeId" />
+                            <label>Količina</label>
+                            <input type="number" name="quantity" value="@item.Quantity" min="1" onchange="this.form.submit()" />
+                        </form>
 
-                        <td class="fw-bold">@item.Total.ToString("0.00") BAM</td>
+                        <div class="cart-line-total">
+                            <span>Ukupno</span>
+                            <strong>@item.Total.ToString("0.00") BAM</strong>
+                        </div>
 
-                        <td>
-                            <a asp-action="Remove"
-                               asp-route-productId="@item.ProductId"
-                               asp-route-productSizeId="@item.ProductSizeId"
-                               class="btn btn-danger btn-sm">
-                                Ukloni
-                            </a>
-                        </td>
-                    </tr>
+                        <a asp-action="Remove" asp-route-productId="@item.ProductId" asp-route-productSizeId="@item.ProductSizeId" class="remove-link">Ukloni</a>
+                    </div>
                 }
-            </tbody>
-        </table>
-
-        <div class="cart-summary-section mt-5">
-            <div class="cart-total-box">
-                <h3 class="cart-total-label">Ukupno za Plaćanje:</h3>
-                <h2 class="cart-total-amount">@Model.Sum(x => x.Total).ToString("0.00") KM</h2>
-            </div>
-
-            <div class="cart-actions">
-                <a asp-controller="Home" asp-action="Index" class="cart-btn cart-btn-secondary">
-                    ← Nastavi Kupovinu
-                </a>
-                <a href="#" class="cart-btn cart-btn-primary">
-                    Sledeći Korak →
+                <a asp-controller="Home" asp-action="Index" class="continue-shopping-card">
+                    <span>Nastavi kupovinu</span>
+                    <strong>Pogledaj još proizvoda prije završetka narudžbe</strong>
                 </a>
             </div>
+
+            <aside class="cart-summary">
+                <span>Ukupno za plaćanje</span>
+                <strong>@total.ToString("0.00") BAM</strong>
+                <a asp-action="Checkout" class="btn btn-primary">Nastavi na narudžbu</a>
+            </aside>
         </div>
     }
 </div>
 
 <style>
-    .cart-items-preview {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        min-width: 320px;
-        max-width: 400px;
-        z-index: 1000;
-        padding: 12px;
-        display: none;
-        margin-top: 10px;
-    }
-
-    .cart-button-container {
-        position: relative;
-    }
-
-    .cart-button-container:hover .cart-items-preview {
-        display: block;
-    }
-
-    .cart-preview-item {
-        display: flex;
-        gap: 10px;
-        padding: 8px 0;
-        border-bottom: 1px solid #eee;
-        font-size: 13px;
-    }
-
-    .cart-preview-item:last-child {
-        border-bottom: none;
-    }
-
-    .cart-preview-item img {
-        width: 50px;
-        height: 50px;
-        object-fit: contain;
-        border-radius: 4px;
-        background: #f5f5f5;
-    }
-
-    .cart-preview-info {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-
-    .cart-preview-name {
-        font-weight: bold;
-        color: #000;
-        margin-bottom: 3px;
-    }
-
-    .cart-preview-details {
-        color: #666;
-        font-size: 12px;
-    }
-
-    .cart-preview-total {
-        padding-top: 8px;
-        padding-bottom: 8px;
-        text-align: right;
-        font-weight: bold;
-        border-top: 1px solid #ddd;
-        border-bottom: 1px solid #ddd;
-        margin-top: 8px;
-    }
+    .cart-page { max-width: 1120px; margin: 0 auto; }
+    .cart-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+    .cart-header h1 { margin: 0; font-weight: 900; color: #211a1d; }
+    .btn-primary { background: #d82736; border-color: #d82736; font-weight: 900; }
+    .btn-primary:hover { background: #b51d2a; border-color: #b51d2a; }
+    .btn-outline-secondary { font-weight: 900; }
+    .empty-cart { border: 1px solid #f7c9cf; border-radius: 6px; background: #fff; padding: 34px; text-align: center; }
+    .cart-layout { display: grid; grid-template-columns: 1fr 310px; gap: 22px; align-items: start; }
+    .cart-items { display: grid; gap: 12px; }
+    .cart-item { display: grid; grid-template-columns: 110px 1fr 150px 130px auto; gap: 14px; align-items: center; border: 1px solid #f7c9cf; border-radius: 6px; background: #fff; padding: 12px; }
+    .cart-image { width: 110px; aspect-ratio: 1; background: #f6f6f6; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #777; font-weight: 800; overflow: hidden; }
+    .cart-image img { width: 100%; height: 100%; object-fit: cover; }
+    .cart-info { display: grid; gap: 4px; }
+    .cart-info strong { font-size: 17px; color: #211a1d; }
+    .cart-info span { color: #6f3741; font-weight: 700; }
+    .quantity-form { display: grid; gap: 6px; }
+    .quantity-form label, .cart-line-total span { color: #6f3741; font-weight: 900; font-size: 13px; }
+    .quantity-form input { width: 86px; border: 1px solid #d9b9be; border-radius: 4px; padding: 7px 8px; }
+    .cart-line-total { display: grid; gap: 4px; }
+    .cart-line-total strong { color: #211a1d; font-size: 17px; }
+    .remove-link { color: #d82736; font-weight: 900; text-decoration: none; }
+    .continue-shopping-card { display: grid; gap: 4px; border: 1px solid #d82736; border-radius: 6px; background: #fff1f3; color: #a91524; text-decoration: none; padding: 16px 18px; }
+    .continue-shopping-card:hover { background: #ffe7eb; color: #8f1420; border-color: #b51d2a; }
+    .continue-shopping-card span { font-size: 18px; font-weight: 900; }
+    .continue-shopping-card strong { color: #211a1d; font-size: 14px; }
+    .cart-summary { position: sticky; top: 20px; display: grid; gap: 12px; border: 1px solid #f7c9cf; border-radius: 6px; background: #fff7f8; padding: 18px; }
+    .cart-summary span { color: #6f3741; font-weight: 900; }
+    .cart-summary strong { font-size: 28px; color: #211a1d; }
+    @@media (max-width: 940px) { .cart-layout { grid-template-columns: 1fr; } .cart-item { grid-template-columns: 90px 1fr; } .quantity-form, .cart-line-total, .remove-link { grid-column: 2; } }
+    @@media (max-width: 620px) { .cart-header { align-items: flex-start; flex-direction: column; } .cart-item { grid-template-columns: 1fr; } .cart-image, .quantity-form, .cart-line-total, .remove-link { grid-column: auto; } .cart-image { width: 100%; } }
 </style>

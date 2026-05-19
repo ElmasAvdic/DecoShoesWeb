@@ -17,7 +17,15 @@ namespace DecoShoesWeb.Controllers
             _context = context;
         }
 
-        public async Task<IActionResult> Index(int? categoryId, string? filter, string? search)
+        public async Task<IActionResult> Index(
+            int? categoryId,
+            string? filter,
+            string? search,
+            string? size,
+            string? color,
+            decimal? minPrice,
+            decimal? maxPrice,
+            string? sort)
         {
             var categories = await _context.Categories
                 .AsNoTracking()
@@ -52,7 +60,8 @@ namespace DecoShoesWeb.Controllers
 
             IQueryable<Product> products = _context.Products
                 .Include(p => p.Category)
-                .ThenInclude(c => c.ParentCategory);
+                .ThenInclude(c => c.ParentCategory)
+                .Include(p => p.ProductSizes);
 
             if (selectedCategory != null)
             {
@@ -91,9 +100,71 @@ namespace DecoShoesWeb.Controllers
                     (p.Category != null && p.Category.ParentCategory != null && p.Category.ParentCategory.Name.Contains(search)));
             }
 
-            var orderedProducts = filter == "new"
-                ? products.OrderByDescending(p => p.CreatedAt).ThenBy(p => p.Name)
-                : products.OrderBy(p => p.Price).ThenBy(p => p.Name);
+            var filterBaseProducts = products;
+
+            var availableColors = await filterBaseProducts
+                .Where(p => p.Color != null && p.Color != "")
+                .Select(p => p.Color!)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync();
+
+            var availableSizes = await filterBaseProducts
+                .SelectMany(p => p.ProductSizes)
+                .Where(s => s.StockQuantity > 0 && s.Size != null && s.Size != "")
+                .Select(s => s.Size)
+                .Distinct()
+                .OrderBy(s => s)
+                .ToListAsync();
+
+            size = string.IsNullOrWhiteSpace(size) ? null : size.Trim();
+            color = string.IsNullOrWhiteSpace(color) ? null : color.Trim();
+            sort = string.IsNullOrWhiteSpace(sort) ? null : sort.Trim().ToLowerInvariant();
+
+            if (size != null)
+            {
+                products = products.Where(p => p.ProductSizes.Any(s => s.StockQuantity > 0 && s.Size == size));
+            }
+
+            if (color != null)
+            {
+                products = products.Where(p => p.Color != null && p.Color == color);
+            }
+
+            if (minPrice.HasValue)
+            {
+                products = products.Where(p =>
+                    (p.DiscountPercent.HasValue && p.DiscountPercent > 0
+                        ? p.Price * (1 - p.DiscountPercent.Value / 100)
+                        : p.Price) >= minPrice.Value);
+            }
+
+            if (maxPrice.HasValue)
+            {
+                products = products.Where(p =>
+                    (p.DiscountPercent.HasValue && p.DiscountPercent > 0
+                        ? p.Price * (1 - p.DiscountPercent.Value / 100)
+                        : p.Price) <= maxPrice.Value);
+            }
+
+            var orderedProducts = sort switch
+            {
+                "price-desc" => products
+                    .OrderByDescending(p => p.DiscountPercent.HasValue && p.DiscountPercent > 0
+                        ? p.Price * (1 - p.DiscountPercent.Value / 100)
+                        : p.Price)
+                    .ThenBy(p => p.Name),
+                "newest" => products.OrderByDescending(p => p.CreatedAt).ThenBy(p => p.Name),
+                "discount" => products.OrderByDescending(p => p.DiscountPercent ?? 0).ThenBy(p => p.Name),
+                "price-asc" => products
+                    .OrderBy(p => p.DiscountPercent.HasValue && p.DiscountPercent > 0
+                        ? p.Price * (1 - p.DiscountPercent.Value / 100)
+                        : p.Price)
+                    .ThenBy(p => p.Name),
+                _ => filter == "new"
+                    ? products.OrderByDescending(p => p.CreatedAt).ThenBy(p => p.Name)
+                    : products.OrderBy(p => p.ProductID)
+            };
 
             ViewData["RootCategories"] = rootCategories;
             ViewData["SubcategoriesByParent"] = categories
@@ -105,8 +176,30 @@ namespace DecoShoesWeb.Controllers
             ViewData["SelectedCategory"] = selectedCategory;
             ViewData["CurrentFilter"] = filter;
             ViewData["CurrentSearch"] = search;
+            ViewData["CurrentSize"] = size;
+            ViewData["CurrentColor"] = color;
+            ViewData["CurrentMinPrice"] = minPrice;
+            ViewData["CurrentMaxPrice"] = maxPrice;
+            ViewData["CurrentSort"] = sort;
+            ViewData["AvailableColors"] = availableColors;
+            ViewData["AvailableSizes"] = availableSizes;
 
-            return View(await orderedProducts.ToListAsync());
+            var productList = await orderedProducts
+                .AsSplitQuery()
+                .ToListAsync();
+
+            productList = productList
+                .DistinctBy(p => p.ProductID)
+                .ToList();
+
+            if (sort == null && filter != "new")
+            {
+                productList = productList
+                    .OrderBy(_ => Random.Shared.Next())
+                    .ToList();
+            }
+
+            return View(productList);
         }
 
         public IActionResult Privacy()

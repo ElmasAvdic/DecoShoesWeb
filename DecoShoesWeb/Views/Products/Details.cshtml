@@ -2,6 +2,9 @@
 
 @{
     ViewData["Title"] = Model.Name;
+    var source = Context.Request.Query["source"].ToString();
+    var isAdminView = source == "admin";
+    var similarProducts = ViewData["SimilarProducts"] as List<DecoShoesWeb.Models.Product> ?? new List<DecoShoesWeb.Models.Product>();
 }
 
 <h1>@Model.Name</h1>
@@ -49,6 +52,7 @@
         </div>
 
         <form asp-controller="Cart" asp-action="AddToCart" method="post" onsubmit="return validateForm()" class="cart-form-panel">
+            @Html.AntiForgeryToken()
             <input type="hidden" name="productId" value="@Model.ProductID" />
 
             @if (Model.HasSizes)
@@ -97,9 +101,48 @@
             </div>
         }
 
-        <button type="button" class="btn btn-outline-secondary back-products-btn" onclick="goBackToShopping()">Nazad u kupovinu</button>
+        @if (isAdminView)
+        {
+            <a asp-action="Index" class="btn btn-outline-secondary back-products-btn">Nazad na proizvode</a>
+        }
+        else
+        {
+            <button type="button" class="btn btn-outline-secondary back-products-btn" onclick="goBackToShopping()">Nazad u kupovinu</button>
+        }
     </div>
 </div>
+
+@if (!isAdminView && similarProducts.Any())
+{
+    <section class="similar-products-section">
+        <h2>Slični proizvodi</h2>
+        <div class="similar-products-grid">
+            @foreach (var product in similarProducts)
+            {
+                var hasDiscount = product.DiscountPercent.HasValue && product.DiscountPercent > 0;
+                var price = hasDiscount ? product.Price * (1 - product.DiscountPercent.Value / 100) : product.Price;
+
+                <a class="similar-product-card customer-history-replace" asp-controller="Products" asp-action="Details" asp-route-id="@product.ProductID" asp-route-source="shop">
+                    <div class="similar-product-image">
+                        @if (!string.IsNullOrWhiteSpace(product.ImageUrl))
+                        {
+                            <img src="@product.ImageUrl" alt="@product.Name" />
+                        }
+                        else
+                        {
+                            <span>Nema slike</span>
+                        }
+                    </div>
+                    <div class="similar-product-info">
+                        <strong>@product.Name</strong>
+                        <span>@(product.Category?.Name ?? "Proizvod")</span>
+                        <b>@price.ToString("0.00") BAM</b>
+                    </div>
+                </a>
+            }
+        </div>
+    </section>
+}
 
 <style>
     .product-details-page {
@@ -220,6 +263,81 @@
         color: #8f1420;
     }
 
+    .similar-products-section {
+        margin-top: 36px;
+        padding-top: 26px;
+        border-top: 1px solid #f7c9cf;
+    }
+
+    .similar-products-section h2 {
+        font-size: 24px;
+        font-weight: 900;
+        color: #211a1d;
+        margin-bottom: 18px;
+    }
+
+    .similar-products-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        align-items: start;
+    }
+
+    .similar-product-card {
+        display: grid;
+        gap: 10px;
+        border: 1px solid #f7c9cf;
+        border-radius: 6px;
+        padding: 12px;
+        color: #211a1d;
+        text-decoration: none;
+        background: #fff;
+    }
+
+    .similar-product-card:hover {
+        border-color: #d82736;
+        color: #211a1d;
+        box-shadow: 0 10px 22px rgba(33, 26, 29, .1);
+    }
+
+    .similar-product-image {
+        aspect-ratio: 4 / 3;
+        background: #f6f6f6;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        color: #777;
+        font-weight: 800;
+    }
+
+    .similar-product-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .similar-product-info {
+        display: grid;
+        gap: 4px;
+    }
+
+    .similar-product-info strong {
+        font-size: 16px;
+        line-height: 1.25;
+    }
+
+    .similar-product-info span {
+        color: #6f3741;
+        font-weight: 700;
+        font-size: 13px;
+    }
+
+    .similar-product-info b {
+        font-size: 17px;
+    }
+
     #stockMessage {
         border-radius: 5px;
         padding: 12px 15px;
@@ -245,6 +363,16 @@
 
         .main-image-box {
             min-height: 360px;
+        }
+
+        .similar-products-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @@media (max-width: 560px) {
+        .similar-products-grid {
+            grid-template-columns: 1fr;
         }
     }
 </style>
@@ -339,6 +467,17 @@
 
     document.querySelectorAll('.size-input').forEach(input => {
         input.addEventListener('change', validateQuantity);
+    });
+
+    function goBackToShopping() {
+        window.location.replace('@Url.Action("Index", "Home")');
+    }
+
+    document.querySelectorAll('.customer-history-replace').forEach(link => {
+        link.addEventListener('click', function (event) {
+            event.preventDefault();
+            window.location.replace(this.href);
+        });
     });
 
     window.addEventListener('load', validateQuantity);

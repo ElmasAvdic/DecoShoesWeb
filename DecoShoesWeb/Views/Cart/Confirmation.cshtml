@@ -1,0 +1,94 @@
+@model DecoShoesWeb.Models.Order
+
+@{
+    ViewData["Title"] = "Narudžba potvrđena";
+}
+
+<section class="checkout-confirmation">
+    <div class="confirmation-card">
+        <span class="confirmation-kicker">Hvala na kupovini</span>
+        <h1>Narudžba je uspješno poslana</h1>
+        <p>
+            Tvoja narudžba <strong>#@Model.OrderID</strong> je zaprimljena. U admin dijelu je automatski dodana pod
+            narudžbe, stavke narudžbe i plaćanja.
+        </p>
+
+        <div class="confirmation-summary">
+            <div>
+                <span>Kupac</span>
+                <strong>@(Model.Customer != null ? $"{Model.Customer.FirstName} {Model.Customer.LastName}" : "-")</strong>
+            </div>
+            <div>
+                <span>Ukupno</span>
+                <strong>@Model.TotalAmount.ToString("0.00") BAM</strong>
+            </div>
+            <div>
+                <span>Status</span>
+                <strong>@(Model.Status ?? "Nova")</strong>
+            </div>
+        </div>
+
+        <a asp-controller="Home" asp-action="Index" class="btn btn-danger">Nazad u kupovinu</a>
+    </div>
+</section>
+
+<style>
+    .checkout-confirmation {
+        max-width: 760px;
+        margin: 42px auto;
+    }
+
+    .confirmation-card {
+        border: 1px solid #f3c7cd;
+        border-top: 5px solid #d82736;
+        border-radius: 8px;
+        padding: 34px;
+        background: #fff;
+        box-shadow: 0 16px 32px rgba(33, 26, 29, .08);
+    }
+
+    .confirmation-kicker {
+        display: inline-block;
+        margin-bottom: 10px;
+        color: #a91524;
+        font-weight: 800;
+        text-transform: uppercase;
+        font-size: 13px;
+    }
+
+    .confirmation-card h1 {
+        margin-bottom: 12px;
+        font-weight: 900;
+    }
+
+    .confirmation-summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin: 26px 0;
+    }
+
+    .confirmation-summary div {
+        background: #fff1f3;
+        border: 1px solid #f3c7cd;
+        border-radius: 6px;
+        padding: 14px;
+    }
+
+    .confirmation-summary span {
+        display: block;
+        color: #75424b;
+        font-size: 13px;
+        margin-bottom: 4px;
+    }
+
+    .confirmation-summary strong {
+        color: #211a1d;
+    }
+
+    @@media (max-width: 700px) {
+        .confirmation-summary {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

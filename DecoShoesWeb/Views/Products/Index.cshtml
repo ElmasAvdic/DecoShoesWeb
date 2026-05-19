@@ -80,7 +80,7 @@
                     <a asp-controller="ProductSizes" asp-action="Manage" asp-route-productId="@item.ProductID" class="btn btn-sm btn-outline-primary">Brojevi</a>
                 }
                 <a asp-action="Edit" asp-route-id="@item.ProductID" class="btn btn-sm btn-outline-secondary">Uredi</a>
-                <a asp-action="Details" asp-route-id="@item.ProductID" class="btn btn-sm btn-outline-secondary">Detalji</a>
+                <a asp-action="Details" asp-route-id="@item.ProductID" asp-route-source="admin" class="btn btn-sm btn-outline-secondary">Detalji</a>
                 <a asp-action="Delete" asp-route-id="@item.ProductID" class="btn btn-sm btn-danger">Obriši</a>
             </td>
         </tr>

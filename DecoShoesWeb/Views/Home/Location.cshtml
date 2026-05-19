@@ -1,11 +1,13 @@
 @{
     ViewData["Title"] = "Lokacija";
+    var storeMapUrl = "https://www.google.com/maps/place/Deco+Shoes/@44.4389027,18.1445395,17z/data=!3m1!4b1!4m6!3m5!1s0x475eeb2a697a892b:0x83e3ede6b82b951d!8m2!3d44.4389027!4d18.1471144!16s%2Fg%2F11b_05bsyn!5m1!1e2?entry=ttu&g_ep=EgoyMDI2MDUxMy4wIKXMDSoASAFQAw%3D%3D";
 }
 
 <div class="location-panel">
     <h1>Lokacija</h1>
-    <p class="location-main">DecoShoes - Jajce, Bosna i Hercegovina</p>
-    <p class="text-muted">Ovdje možeš kasnije dodati tačnu adresu, radno vrijeme i mapu poslovnice.</p>
+    <p class="location-main">DecoShoes - Zavidovići, Bosna i Hercegovina</p>
+    <p class="text-muted">C4QW+HR9, Gazi Husrev-begova, Zavidovići, Bosnia &amp; Herzegovina</p>
+    <a class="location-map-link" href="@storeMapUrl" target="_blank" rel="noopener">Otvori lokaciju</a>
 </div>
 
 <style>
@@ -21,5 +23,21 @@
         font-size: 20px;
         font-weight: 900;
         color: #d82736;
+    }
+
+    .location-map-link {
+        display: inline-flex;
+        margin-top: 12px;
+        padding: 10px 16px;
+        border-radius: 4px;
+        background: #d82736;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 900;
+    }
+
+    .location-map-link:hover {
+        background: #b51d2a;
+        color: #fff;
     }
 </style>

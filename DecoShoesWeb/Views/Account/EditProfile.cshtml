@@ -1,0 +1,76 @@
+﻿@model DecoShoesWeb.Models.Customer
+
+@{
+    ViewData["Title"] = "Uredi moje podatke";
+}
+
+<div class="profile-edit-page">
+    <h1>Uredi moje podatke</h1>
+
+    <form asp-action="EditProfile" method="post" class="profile-edit-card">
+        <input type="hidden" asp-for="CustomerID" />
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label asp-for="FirstName">Ime</label>
+                <input asp-for="FirstName" class="form-control" />
+                <span asp-validation-for="FirstName" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="LastName">Prezime</label>
+                <input asp-for="LastName" class="form-control" />
+                <span asp-validation-for="LastName" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Email">Email</label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="Phone">Telefon</label>
+                <input asp-for="Phone" class="form-control" />
+                <span asp-validation-for="Phone" class="text-danger"></span>
+            </div>
+            <div class="form-group wide">
+                <label asp-for="Address">Adresa</label>
+                <input asp-for="Address" class="form-control" />
+                <span asp-validation-for="Address" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="City">Grad</label>
+                <input asp-for="City" class="form-control" />
+                <span asp-validation-for="City" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <label asp-for="PostalCode">Poštanski broj</label>
+                <input asp-for="PostalCode" class="form-control" />
+                <span asp-validation-for="PostalCode" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Sačuvaj</button>
+            <a asp-action="Profile" class="btn btn-outline-secondary">Nazad na moje podatke</a>
+        </div>
+    </form>
+</div>
+
+<style>
+    .profile-edit-page { max-width: 860px; margin: 0 auto; }
+    .profile-edit-page h1 { font-weight: 900; color: #211a1d; margin-bottom: 18px; }
+    .profile-edit-card { background: #fff; border: 1px solid #f7c9cf; border-radius: 6px; padding: 22px; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .form-group.wide { grid-column: 1 / -1; }
+    .form-group label { font-weight: 900; color: #211a1d; margin-bottom: 6px; }
+    .form-control:focus { border-color: #d82736; box-shadow: 0 0 0 .2rem rgba(216, 39, 54, .15); }
+    .form-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+    .btn-primary { background: #d82736; border-color: #d82736; font-weight: 900; }
+    .btn-primary:hover { background: #b51d2a; border-color: #b51d2a; }
+    .btn-outline-secondary { font-weight: 900; }
+    @@media (max-width: 680px) { .form-grid { grid-template-columns: 1fr; } }
+</style>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

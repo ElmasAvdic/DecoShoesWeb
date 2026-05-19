@@ -1,4 +1,5 @@
 @using DecoShoesWeb.Models
+@using System.Globalization
 @using System.Text.Json
 @model List<Product>
 @{
@@ -10,7 +11,15 @@
     var selectedCategory = (Category?)ViewData["SelectedCategory"];
     var currentFilter = (string?)ViewData["CurrentFilter"];
     var currentSearch = (string?)ViewData["CurrentSearch"];
+    var currentSize = (string?)ViewData["CurrentSize"];
+    var currentColor = (string?)ViewData["CurrentColor"];
+    var currentMinPrice = (decimal?)ViewData["CurrentMinPrice"];
+    var currentMaxPrice = (decimal?)ViewData["CurrentMaxPrice"];
+    var currentSort = (string?)ViewData["CurrentSort"];
+    var availableColors = (List<string>)(ViewData["AvailableColors"] ?? new List<string>());
+    var availableSizes = (List<string>)(ViewData["AvailableSizes"] ?? new List<string>());
     var customerName = Context.Session.GetString("CustomerName");
+    var customerId = Context.Session.GetInt32("CustomerID");
     var wishlistJson = Context.Session.GetString("Wishlist");
     var wishlistIds = string.IsNullOrWhiteSpace(wishlistJson)
         ? new List<int>()
@@ -23,6 +32,16 @@
     var cartCount = cartItems.Sum(item => item.Quantity);
     var activeCategoryRouteId = selectedCategoryId;
     var allProductsLabel = selectedCategory?.Name ?? (string.IsNullOrWhiteSpace(currentSearch) ? "Svi proizvodi" : $"Pretraga: {currentSearch}");
+    var storeMapUrl = "https://www.google.com/maps/place/Deco+Shoes/@44.4389027,18.1445395,17z/data=!3m1!4b1!4m6!3m5!1s0x475eeb2a697a892b:0x83e3ede6b82b951d!8m2!3d44.4389027!4d18.1471144!16s%2Fg%2F11b_05bsyn";
+    var accountModal = TempData["AccountModal"]?.ToString();
+    var accountError = TempData["AccountError"]?.ToString();
+    var isAccountModalOpen = accountModal == "login" || accountModal == "register";
+    var currentMinPriceText = currentMinPrice?.ToString("0.##", CultureInfo.InvariantCulture);
+    var currentMaxPriceText = currentMaxPrice?.ToString("0.##", CultureInfo.InvariantCulture);
+    var hasAdvancedFilters = !string.IsNullOrWhiteSpace(currentSize)
+        || !string.IsNullOrWhiteSpace(currentColor)
+        || currentMinPrice.HasValue
+        || currentMaxPrice.HasValue;
 }
 
 <style>
@@ -36,6 +55,7 @@
     .audience-link, .utility-link, .category-link { color: #211a1d; text-decoration: none; font-weight: 800; font-size: 15px; }
     .audience-link:hover, .utility-link:hover, .category-link:hover, .audience-link.active, .category-link.active { color: #d82736; }
     .utility-link { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 4px; position: relative; }
+    .utility-button { border: none; background: transparent; padding: 0; cursor: pointer; font: inherit; }
     .utility-link:hover { background: #fff1f3; }
     .utility-icon { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .utility-text { font-size: 12px; font-weight: 900; }
@@ -44,6 +64,24 @@
     .utility-item:hover .utility-dropdown, .utility-item:focus-within .utility-dropdown { opacity: 1; visibility: visible; transform: translateY(0); }
     .utility-dropdown strong { display: block; color: #211a1d; font-size: 17px; margin-bottom: 12px; }
     .utility-dropdown p { color: #6f3741; font-weight: 700; margin: 0; }
+    .account-menu-dropdown { width: 255px; padding: 22px 16px; text-align: left; }
+    .account-menu-dropdown strong { text-align: center; font-size: 18px; margin-bottom: 22px; }
+    .account-menu-dropdown a, .account-menu-dropdown button { width: 100%; display: block; border: none; background: transparent; color: #211a1d; text-align: left; text-decoration: none; font-weight: 900; font-size: 16px; padding: 12px 0; cursor: pointer; }
+    .account-menu-dropdown a:hover, .account-menu-dropdown button:hover { color: #d82736; }
+    .account-menu-dropdown .logout-link { margin-top: 12px; text-decoration: underline; }
+    .cart-menu-dropdown { width: 330px; padding: 18px; text-align: left; }
+    .cart-menu-dropdown .dropdown-icon { text-align: center; }
+    .cart-menu-title { text-align: center; margin-bottom: 14px !important; }
+    .cart-preview-list { display: grid; gap: 10px; margin-bottom: 14px; }
+    .cart-preview-item { display: grid; grid-template-columns: 54px 1fr; gap: 10px; align-items: center; padding: 8px; border: 1px solid #f7c9cf; border-radius: 6px; background: #fff7f8; }
+    .cart-preview-image { width: 54px; aspect-ratio: 1; border-radius: 4px; background: #f6f6f6; display: flex; align-items: center; justify-content: center; overflow: hidden; color: #777; font-size: 10px; font-weight: 900; }
+    .cart-preview-image img { width: 100%; height: 100%; object-fit: cover; }
+    .cart-preview-info { display: grid; gap: 2px; min-width: 0; }
+    .cart-preview-info b { color: #211a1d; font-size: 14px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cart-preview-info span { color: #6f3741; font-size: 12px; font-weight: 800; }
+    .cart-preview-total { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid #f7c9cf; padding-top: 12px; color: #211a1d; font-weight: 900; }
+    .cart-preview-button { display: block; margin-top: 12px; background: #d82736; color: #fff; border-radius: 4px; padding: 10px 12px; text-align: center; text-decoration: none; font-weight: 900; }
+    .cart-preview-button:hover { background: #b51d2a; color: #fff; }
     .dropdown-icon { color: #d82736; margin-bottom: 10px; }
     .dropdown-icon svg { width: 38px; height: 38px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
     .audience-dropdown { position: absolute; top: 100%; left: 0; min-width: 230px; background: #fff; border: 1px solid #f7c9cf; border-top: 3px solid #d82736; box-shadow: 0 14px 30px rgba(33, 26, 29, .14); padding: 8px 0; z-index: 20; opacity: 0; visibility: hidden; transform: translateY(8px); transition: opacity .15s ease, transform .15s ease, visibility .15s ease; }
@@ -58,6 +96,21 @@
     .search-box { height: 42px; display: flex; align-items: center; gap: 10px; background: #fff1f3; padding: 0 10px 0 14px; color: #6f3741; font-weight: 700; }
     .search-box input { width: 100%; border: none; outline: none; background: transparent; color: #211a1d; font-weight: 700; }
     .search-box button { border: none; background: #d82736; color: #fff; font-weight: 900; padding: 7px 12px; border-radius: 4px; }
+    .refresh-view-link { display: inline-flex; align-items: center; justify-content: center; border: 1px solid #d82736; color: #a91524; font-weight: 900; padding: 8px 12px; border-radius: 4px; text-decoration: none; }
+    .refresh-view-link:hover { background: #fff1f3; color: #8f1420; }
+    .shop-controls { display: grid; gap: 12px; padding: 14px 0; border-bottom: 1px solid #f7c9cf; background: #fff; }
+    .shop-controls-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .filter-toggle { border: 1px solid #d82736; background: #fff; color: #a91524; font-weight: 900; padding: 9px 14px; border-radius: 4px; cursor: pointer; }
+    .filter-toggle:hover { background: #fff1f3; }
+    .sort-form { display: flex; align-items: center; gap: 8px; color: #211a1d; font-weight: 900; }
+    .sort-form select, .filter-panel select, .filter-panel input { border: 1px solid #d9b9be; border-radius: 4px; padding: 9px 10px; font-weight: 700; color: #211a1d; background: #fff; }
+    .filter-panel { display: none; grid-template-columns: repeat(4, minmax(150px, 1fr)) auto auto; align-items: end; gap: 12px; padding: 14px; background: #fff7f8; border: 1px solid #f7c9cf; border-radius: 6px; }
+    .filter-panel.is-open { display: grid; }
+    .filter-field label { display: block; margin-bottom: 5px; color: #6f3741; font-weight: 900; font-size: 13px; }
+    .filter-field select, .filter-field input { width: 100%; }
+    .filter-submit { border: none; background: #d82736; color: #fff; font-weight: 900; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+    .filter-clear { color: #a91524; font-weight: 900; text-decoration: none; padding: 10px 0; }
+    .filter-clear:hover { color: #8f1420; }
     .benefit-bar { display: flex; justify-content: center; gap: 34px; flex-wrap: wrap; background: #d82736; color: #fff; padding: 9px 12px; font-weight: 800; font-size: 14px; }
     .products-section { margin-top: 32px; }
     .products-title { font-size: 28px; font-weight: 900; margin-bottom: 24px; color: #211a1d; }
@@ -67,8 +120,9 @@
     .product-image-container { position: relative; width: 100%; aspect-ratio: 4 / 3; background-color: #f5f5f5; overflow: hidden; }
     .product-image { width: 100%; height: 100%; object-fit: cover; }
     .product-info { padding: 14px; flex-grow: 1; display: flex; flex-direction: column; }
-    .product-name { font-size: 16px; font-weight: 900; color: #211a1d; margin-bottom: 6px; line-height: 1.35; }
-    .product-brand, .product-color { font-size: 13px; color: #6f3741; margin-bottom: 6px; }
+    .product-name { font-size: 18px; font-weight: 900; color: #211a1d; margin-bottom: 8px; line-height: 1.28; min-height: 46px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .product-meta { min-height: 44px; margin-bottom: 8px; }
+    .product-brand, .product-color { font-size: 13px; color: #6f3741; margin-bottom: 5px; }
     .product-price-container { margin-top: auto; padding-top: 10px; border-top: 1px solid #f6dde1; }
     .product-price { font-size: 21px; font-weight: 900; color: #211a1d; }
     .product-discount, .discount-badge { color: #d82736; font-weight: 900; }
@@ -82,7 +136,28 @@
     .add-to-cart-btn { margin-top: 12px; padding: 10px; background-color: #d82736; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 900; }
     .add-to-cart-btn:hover { background-color: #a91524; }
     .no-products { padding: 42px; background: #fff7f8; color: #6f3741; font-weight: 800; text-align: center; }
-    @@media (max-width: 760px) { .store-header, .category-bar { grid-template-columns: 1fr; } .audience-nav, .utility-nav { justify-content: center; flex-wrap: wrap; } .brand-mark { justify-content: center; } .audience-dropdown { left: 50%; transform: translate(-50%, 8px); } .audience-item:hover .audience-dropdown, .audience-item:focus-within .audience-dropdown { transform: translate(-50%, 0); } }
+    .account-modal-backdrop { position: fixed; inset: 0; background: rgba(33, 26, 29, .58); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 24px; }
+    .account-modal-backdrop.is-open { display: flex; }
+    .account-modal { width: min(720px, 100%); background: #fff; border-radius: 6px; box-shadow: 0 22px 60px rgba(33, 26, 29, .28); padding: 30px; position: relative; }
+    .account-modal-close { position: absolute; top: 14px; right: 16px; width: 34px; height: 34px; border: none; background: transparent; color: #6f3741; font-size: 28px; line-height: 1; cursor: pointer; }
+    .account-modal-title { text-align: center; font-size: 19px; font-weight: 900; margin: 6px 0 20px; color: #211a1d; }
+    .account-tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+    .account-tab { border: 1px solid #f7c9cf; background: #fff; color: #6f3741; border-radius: 999px; padding: 9px 18px; font-weight: 900; cursor: pointer; }
+    .account-tab.active { background: #d82736; border-color: #d82736; color: #fff; }
+    .account-form { display: none; max-width: 440px; margin: 0 auto; }
+    .account-form.active { display: block; }
+    .account-form label { display: block; font-weight: 900; color: #211a1d; margin: 14px 0 7px; }
+    .account-form input { width: 100%; border: 1px solid #d9b9be; border-radius: 999px; padding: 12px 16px; font-weight: 700; outline: none; }
+    .account-form input:focus { border-color: #d82736; box-shadow: 0 0 0 3px #fff1f3; }
+    .account-submit { width: 100%; border: none; border-radius: 999px; background: #d82736; color: #fff; font-weight: 900; padding: 13px 18px; margin-top: 22px; cursor: pointer; }
+    .account-submit:hover { background: #b51d2a; }
+    .account-switch { margin-top: 18px; text-align: center; color: #6f3741; font-weight: 800; }
+    .account-switch button { border: none; background: transparent; color: #d82736; font-weight: 900; text-decoration: underline; cursor: pointer; padding: 0; }
+    .account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+    .account-error { max-width: 440px; margin: 0 auto 14px; border: 1px solid #f7c9cf; background: #fff1f3; color: #a91524; font-weight: 800; padding: 10px 12px; border-radius: 4px; }
+    @@media (max-width: 900px) { .filter-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @@media (max-width: 760px) { .account-grid { grid-template-columns: 1fr; } .store-header, .category-bar { grid-template-columns: 1fr; } .audience-nav, .utility-nav { justify-content: center; flex-wrap: wrap; } .brand-mark { justify-content: center; } .audience-dropdown { left: 50%; transform: translate(-50%, 8px); } .audience-item:hover .audience-dropdown, .audience-item:focus-within .audience-dropdown { transform: translate(-50%, 0); } }
+    @@media (max-width: 560px) { .filter-panel { grid-template-columns: 1fr; } .sort-form { width: 100%; align-items: stretch; flex-direction: column; } .sort-form select { width: 100%; } }
 </style>
 
 <div class="shop-shell">
@@ -95,13 +170,13 @@
                 var isActive = selectedRootCategoryId == category.CategoryID || selectedCategoryId == category.CategoryID;
                 var children = subcategoriesByParent.ContainsKey(category.CategoryID) ? subcategoriesByParent[category.CategoryID] : new List<Category>();
                 <div class="audience-item">
-                    <a class="audience-link @(isActive ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = category.CategoryID })">@category.Name</a>
+                    <a class="audience-link @(isActive ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = category.CategoryID, filter = currentFilter, search = currentSearch, size = currentSize, color = currentColor, minPrice = currentMinPrice, maxPrice = currentMaxPrice, sort = currentSort })">@category.Name</a>
                     @if (children.Any())
                     {
                         <div class="audience-dropdown">
                             @foreach (var child in children)
                             {
-                                <a class="@(selectedCategoryId == child.CategoryID ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = child.CategoryID, filter = currentFilter, search = currentSearch })">@child.Name</a>
+                                <a class="@(selectedCategoryId == child.CategoryID ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = child.CategoryID, filter = currentFilter, search = currentSearch, size = currentSize, color = currentColor, minPrice = currentMinPrice, maxPrice = currentMaxPrice, sort = currentSort })">@child.Name</a>
                             }
                         </div>
                     }
@@ -112,16 +187,23 @@
         <a class="brand-mark" href="@Url.Action("Index", "Home")"><span class="brand-icon">D</span><span>DECOSHOES</span></a>
 
         <nav class="utility-nav" aria-label="Korisničke akcije">
-            <a class="utility-link" asp-controller="Home" asp-action="Index" title="Bosna i Hercegovina"><span class="utility-text">BiH</span></a>
-            <a class="utility-link" asp-controller="Home" asp-action="Location" title="Lokacija Jajce"><svg class="utility-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg></a>
+            <a class="utility-link" href="@storeMapUrl" target="_blank" rel="noopener" title="Lokacija Zavidovići"><span class="utility-text">BiH</span></a>
+            <a class="utility-link" href="@storeMapUrl" target="_blank" rel="noopener" title="Lokacija Zavidovići"><svg class="utility-icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12S3 17 3 10a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg></a>
             @if (string.IsNullOrWhiteSpace(customerName))
             {
-                <a class="utility-link" asp-controller="Account" asp-action="Login" title="Prijava"><svg class="utility-icon" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></a>
-                <a class="utility-link" asp-controller="Account" asp-action="Register" title="Registracija"><svg class="utility-icon" viewBox="0 0 24 24"><path d="M15 21a7 7 0 0 0-14 0"/><circle cx="8" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg></a>
+                <button class="utility-link utility-button" type="button" onclick="openAccountModal('login')" title="Prijava"><svg class="utility-icon" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></button>
             }
             else
             {
-                <a class="utility-link" asp-controller="Account" asp-action="Logout" title="Odjava: @customerName"><svg class="utility-icon" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></a>
+                <div class="utility-item">
+                    <button class="utility-link utility-button" type="button" title="Moj račun"><svg class="utility-icon" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg></button>
+                    <div class="utility-dropdown account-menu-dropdown">
+                        <strong>Moj račun</strong>
+                        <a asp-controller="Account" asp-action="MyOrders">Moje narudžbe</a>
+                        <a asp-controller="Account" asp-action="Profile">Moji podaci</a>
+                        <a class="logout-link" asp-controller="Account" asp-action="Logout">Odjava</a>
+                    </div>
+                </div>
             }
             <div class="utility-item">
                 <a class="utility-link" asp-controller="Wishlist" asp-action="Index" title="Lista želja"><svg class="utility-icon" viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>@if (wishlistCount > 0){<span class="icon-count">@wishlistCount</span>}</a>
@@ -142,7 +224,7 @@
             </div>
             <div class="utility-item">
                 <a class="utility-link" asp-controller="Cart" asp-action="Index" title="Korpa"><svg class="utility-icon" viewBox="0 0 24 24"><path d="M6 8h12l-1 13H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>@if (cartCount > 0){<span class="icon-count">@cartCount</span>}</a>
-                <div class="utility-dropdown">
+                <div class="utility-dropdown cart-menu-dropdown">
                     @if (cartCount == 0)
                     {
                         <div class="dropdown-icon"><svg viewBox="0 0 24 24"><path d="M6 8h12l-1 13H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg></div>
@@ -152,27 +234,177 @@
                     else
                     {
                         <div class="dropdown-icon"><svg viewBox="0 0 24 24"><path d="M6 8h12l-1 13H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg></div>
-                        <strong>@cartCount proizvoda u korpi</strong>
-                        <p>Otvori korpu da završiš narudžbu.</p>
+                        <strong class="cart-menu-title">@cartCount proizvoda u korpi</strong>
+                        <div class="cart-preview-list">
+                            @foreach (var cartItem in cartItems.Take(3))
+                            {
+                                <div class="cart-preview-item">
+                                    <div class="cart-preview-image">
+                                        @if (!string.IsNullOrWhiteSpace(cartItem.ImageUrl))
+                                        {
+                                            <img src="@cartItem.ImageUrl" alt="@cartItem.ProductName" />
+                                        }
+                                        else
+                                        {
+                                            <span>Nema slike</span>
+                                        }
+                                    </div>
+                                    <div class="cart-preview-info">
+                                        <b>@cartItem.ProductName</b>
+                                        <span>@(string.IsNullOrWhiteSpace(cartItem.Size) ? "Bez veličine" : $"Broj: {cartItem.Size}")</span>
+                                        <span>@cartItem.Quantity x @cartItem.Price.ToString("0.00") BAM</span>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div class="cart-preview-total">
+                            <span>Ukupno</span>
+                            <strong>@cartItems.Sum(item => item.Total).ToString("0.00") BAM</strong>
+                        </div>
+                        <a class="cart-preview-button" asp-controller="Cart" asp-action="Index">Otvori korpu i završi narudžbu</a>
                     }
                 </div>
             </div>
         </nav>
+    <div class="account-modal-backdrop @(isAccountModalOpen ? "is-open" : "")" id="accountModal" aria-hidden="@(isAccountModalOpen ? "false" : "true")">
+        <div class="account-modal" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
+            <button class="account-modal-close" type="button" onclick="closeAccountModal()" aria-label="Zatvori">&times;</button>
+            <div class="account-modal-title" id="accountModalTitle">Prijava</div>
+
+            @if (!string.IsNullOrWhiteSpace(accountError))
+            {
+                <div class="account-error">@accountError</div>
+            }
+
+            <form class="account-form" id="loginForm" asp-controller="Account" asp-action="Login" method="post">
+                @Html.AntiForgeryToken()
+                <label for="loginEmail">Email adresa</label>
+                <input id="loginEmail" name="Email" type="email" autocomplete="email" placeholder="Upiši svoj email" required />
+                <button class="account-submit" type="submit">Prijava</button>
+                <div class="account-switch">Nemaš račun? <button type="button" onclick="switchAccountMode('register')">Registruj se</button></div>
+            </form>
+
+            <form class="account-form" id="registerForm" asp-controller="Account" asp-action="Register" method="post">
+                @Html.AntiForgeryToken()
+                <div class="account-grid">
+                    <div>
+                        <label for="registerFirstName">Ime</label>
+                        <input id="registerFirstName" name="FirstName" type="text" autocomplete="given-name" required />
+                    </div>
+                    <div>
+                        <label for="registerLastName">Prezime</label>
+                        <input id="registerLastName" name="LastName" type="text" autocomplete="family-name" required />
+                    </div>
+                </div>
+                <label for="registerEmail">Email adresa</label>
+                <input id="registerEmail" name="Email" type="email" autocomplete="email" required />
+                <label for="registerPhone">Telefon</label>
+                <input id="registerPhone" name="Phone" type="tel" autocomplete="tel" />
+                <label for="registerAddress">Adresa</label>
+                <input id="registerAddress" name="Address" type="text" autocomplete="street-address" />
+                <div class="account-grid">
+                    <div>
+                        <label for="registerCity">Grad</label>
+                        <input id="registerCity" name="City" type="text" autocomplete="address-level2" />
+                    </div>
+                    <div>
+                        <label for="registerPostalCode">Poštanski broj</label>
+                        <input id="registerPostalCode" name="PostalCode" type="text" autocomplete="postal-code" />
+                    </div>
+                </div>
+                <button class="account-submit" type="submit">Registracija</button>
+                <div class="account-switch">Već imaš račun? <button type="button" onclick="switchAccountMode('login')">Prijavi se</button></div>
+            </form>
+        </div>
+    </div>
+
     </div>
 
     <div class="category-bar">
         <nav class="category-nav" aria-label="Filteri proizvoda">
-            <a class="category-link @(currentFilter == null ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = activeCategoryRouteId, search = currentSearch })">Sve</a>
-            <a class="category-link @(currentFilter == "new" ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = activeCategoryRouteId, filter = "new", search = currentSearch })">Novo</a>
-            <a class="category-link discount @(currentFilter == "discounted" ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = activeCategoryRouteId, filter = "discounted", search = currentSearch })">Sniženo %</a>
+            <a class="category-link @(currentFilter == null ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = activeCategoryRouteId, search = currentSearch, size = currentSize, color = currentColor, minPrice = currentMinPrice, maxPrice = currentMaxPrice, sort = currentSort })">Sve</a>
+            <a class="category-link @(currentFilter == "new" ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = activeCategoryRouteId, filter = "new", search = currentSearch, size = currentSize, color = currentColor, minPrice = currentMinPrice, maxPrice = currentMaxPrice, sort = currentSort })">Novo</a>
+            <a class="category-link discount @(currentFilter == "discounted" ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = activeCategoryRouteId, filter = "discounted", search = currentSearch, size = currentSize, color = currentColor, minPrice = currentMinPrice, maxPrice = currentMaxPrice, sort = currentSort })">Sniženo %</a>
+            <a class="refresh-view-link" href="@Url.Action("Index", "Home")">Osvježi prikaz</a>
         </nav>
 
         <form class="search-box" asp-controller="Home" asp-action="Index" method="get">
             @if (activeCategoryRouteId.HasValue) { <input type="hidden" name="categoryId" value="@activeCategoryRouteId.Value" /> }
             @if (!string.IsNullOrWhiteSpace(currentFilter)) { <input type="hidden" name="filter" value="@currentFilter" /> }
+            @if (!string.IsNullOrWhiteSpace(currentSize)) { <input type="hidden" name="size" value="@currentSize" /> }
+            @if (!string.IsNullOrWhiteSpace(currentColor)) { <input type="hidden" name="color" value="@currentColor" /> }
+            @if (currentMinPrice.HasValue) { <input type="hidden" name="minPrice" value="@currentMinPrice.Value" /> }
+            @if (currentMaxPrice.HasValue) { <input type="hidden" name="maxPrice" value="@currentMaxPrice.Value" /> }
+            @if (!string.IsNullOrWhiteSpace(currentSort)) { <input type="hidden" name="sort" value="@currentSort" /> }
             <svg class="utility-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
             <input type="search" name="search" value="@currentSearch" placeholder="Pretraži proizvode" />
             <button type="submit">Traži</button>
+        </form>
+    </div>
+
+    <div class="shop-controls">
+        <div class="shop-controls-row">
+            <button class="filter-toggle" type="button" onclick="toggleFilterPanel()">Filteri</button>
+
+            <form class="sort-form" asp-controller="Home" asp-action="Index" method="get">
+                @if (activeCategoryRouteId.HasValue) { <input type="hidden" name="categoryId" value="@activeCategoryRouteId.Value" /> }
+                @if (!string.IsNullOrWhiteSpace(currentFilter)) { <input type="hidden" name="filter" value="@currentFilter" /> }
+                @if (!string.IsNullOrWhiteSpace(currentSearch)) { <input type="hidden" name="search" value="@currentSearch" /> }
+                @if (!string.IsNullOrWhiteSpace(currentSize)) { <input type="hidden" name="size" value="@currentSize" /> }
+                @if (!string.IsNullOrWhiteSpace(currentColor)) { <input type="hidden" name="color" value="@currentColor" /> }
+                @if (currentMinPrice.HasValue) { <input type="hidden" name="minPrice" value="@currentMinPrice.Value" /> }
+                @if (currentMaxPrice.HasValue) { <input type="hidden" name="maxPrice" value="@currentMaxPrice.Value" /> }
+                <label for="sort">Razvrstajte</label>
+                <select id="sort" name="sort" onchange="this.form.requestSubmit()">
+                    <option value="" selected="@string.IsNullOrWhiteSpace(currentSort)">Bez razvrstavanja</option>
+                    <option value="price-asc" selected="@(currentSort == "price-asc")">Od najjeftinijeg</option>
+                    <option value="price-desc" selected="@(currentSort == "price-desc")">Od najskupljeg</option>
+                    <option value="newest" selected="@(currentSort == "newest")">Najnovije</option>
+                    <option value="discount" selected="@(currentSort == "discount")">Najveći popust</option>
+                </select>
+            </form>
+        </div>
+
+        <form class="filter-panel @(hasAdvancedFilters ? "is-open" : "")" id="filterPanel" asp-controller="Home" asp-action="Index" method="get">
+            @if (activeCategoryRouteId.HasValue) { <input type="hidden" name="categoryId" value="@activeCategoryRouteId.Value" /> }
+            @if (!string.IsNullOrWhiteSpace(currentFilter)) { <input type="hidden" name="filter" value="@currentFilter" /> }
+            @if (!string.IsNullOrWhiteSpace(currentSearch)) { <input type="hidden" name="search" value="@currentSearch" /> }
+            @if (!string.IsNullOrWhiteSpace(currentSort)) { <input type="hidden" name="sort" value="@currentSort" /> }
+
+            <div class="filter-field">
+                <label for="size">Broj</label>
+                <select id="size" name="size">
+                    <option value="">Svi brojevi</option>
+                    @foreach (var sizeOption in availableSizes)
+                    {
+                        <option value="@sizeOption" selected="@(currentSize == sizeOption)">@sizeOption</option>
+                    }
+                </select>
+            </div>
+
+            <div class="filter-field">
+                <label for="color">Boja</label>
+                <select id="color" name="color">
+                    <option value="">Sve boje</option>
+                    @foreach (var colorOption in availableColors)
+                    {
+                        <option value="@colorOption" selected="@(currentColor == colorOption)">@colorOption</option>
+                    }
+                </select>
+            </div>
+
+            <div class="filter-field">
+                <label for="minPrice">Cijena od</label>
+                <input id="minPrice" name="minPrice" type="number" step="0.01" min="0" value="@currentMinPriceText" placeholder="0" />
+            </div>
+
+            <div class="filter-field">
+                <label for="maxPrice">Cijena do</label>
+                <input id="maxPrice" name="maxPrice" type="number" step="0.01" min="0" value="@currentMaxPriceText" placeholder="100" />
+            </div>
+
+            <button class="filter-submit" type="submit">Primijeni</button>
+            <a class="filter-clear" href="@Url.Action("Index", "Home", new { categoryId = activeCategoryRouteId, filter = currentFilter, search = currentSearch, sort = currentSort })">Očisti filtere</a>
         </form>
     </div>
 
@@ -201,8 +433,10 @@
                     var hasDiscount = product.DiscountPercent.HasValue && product.DiscountPercent > 0;
                     var discountedPrice = hasDiscount ? product.Price * (1 - (product.DiscountPercent.Value / 100)) : product.Price;
                     var isInWishlist = wishlistIds.Contains(product.ProductID);
+                    var categoryText = $"{product.Category?.Name} {product.Category?.ParentCategory?.Name}".ToLowerInvariant();
+                    var isBagProduct = categoryText.Contains("torb");
 
-                    <a href="@Url.Action("Details", "Products", new { id = product.ProductID })" class="product-card" title="@product.Name">
+                    <a href="@Url.Action("Details", "Products", new { id = product.ProductID, source = "shop" })" class="product-card customer-history-replace" title="@product.Name">
                         <div class="product-image-container">
                             @if (!string.IsNullOrEmpty(product.ImageUrl))
                             {
@@ -226,15 +460,17 @@
                         <div class="product-info">
                             <div class="product-name">@product.Name</div>
 
-                            @if (!string.IsNullOrEmpty(product.Brand))
-                            {
-                                <div class="product-brand">@product.Brand</div>
-                            }
+                            <div class="product-meta">
+                                @if (!string.IsNullOrEmpty(product.Brand))
+                                {
+                                    <div class="product-brand">@product.Brand</div>
+                                }
 
-                            @if (!string.IsNullOrEmpty(product.Color))
-                            {
-                                <div class="product-color">Boja: <strong>@product.Color</strong></div>
-                            }
+                                @if (!string.IsNullOrEmpty(product.Color))
+                                {
+                                    <div class="product-color">Boja: <strong>@product.Color</strong></div>
+                                }
+                            </div>
 
                             <div class="product-price-container">
                                 @if (hasDiscount)
@@ -245,7 +481,7 @@
                                 <div class="product-price">@discountedPrice.ToString("F2") KM</div>
                             </div>
 
-                            @if (product.StockQuantity.HasValue && product.StockQuantity > 0 && product.StockQuantity <= 3)
+                            @if (!isBagProduct && product.StockQuantity.HasValue && product.StockQuantity > 0 && product.StockQuantity <= 3)
                             {
                                 <div class="stock-status">Još @product.StockQuantity kom. na zalihi</div>
                             }
@@ -267,16 +503,161 @@
 </div>
 
 <script>
+    const initialAccountMode = '@(accountModal == "register" ? "register" : "login")';
+
+    function switchAccountMode(mode) {
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const modalTitle = document.getElementById('accountModalTitle');
+
+        if (!loginForm || !registerForm) {
+            return;
+        }
+
+        const isRegister = mode === 'register';
+        loginForm.classList.toggle('active', !isRegister);
+        registerForm.classList.toggle('active', isRegister);
+
+        if (modalTitle) {
+            modalTitle.textContent = isRegister ? 'Registracija' : 'Prijava';
+        }
+    }
+
+    function openAccountModal(mode) {
+        const modal = document.getElementById('accountModal');
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        switchAccountMode(mode || 'login');
+    }
+
+    function closeAccountModal() {
+        const modal = document.getElementById('accountModal');
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+
+    function toggleFilterPanel() {
+        const panel = document.getElementById('filterPanel');
+        if (panel) {
+            panel.classList.toggle('is-open');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        switchAccountMode(initialAccountMode);
+
+        const modal = document.getElementById('accountModal');
+        if (modal && modal.classList.contains('is-open')) {
+            switchAccountMode(initialAccountMode);
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeAccountModal();
+            }
+        });
+
+        if (modal) {
+            modal.addEventListener('click', function (event) {
+                if (event.target === modal) {
+                    closeAccountModal();
+                }
+            });
+        }
+    });
+
     function addToCart(productId, event) {
         event.preventDefault();
         event.stopPropagation();
-        window.location.href = '@Url.Action("Details", "Products")' + '?id=' + productId;
+        window.location.replace('@Url.Action("Details", "Products")' + '?id=' + productId + '&source=shop');
     }
 
-    function addToWishlist(productId, event) {
+    async function addToWishlist(productId, event) {
         event.preventDefault();
         event.stopPropagation();
-        const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
-        window.location.href = '@Url.Action("Add", "Wishlist")' + '?productId=' + productId + '&returnUrl=' + returnUrl;
+
+        const button = event.currentTarget;
+        const counter = document.querySelector('.utility-link[title="Lista želja"] .icon-count');
+
+        try {
+            await fetch('@Url.Action("Add", "Wishlist")' + '?productId=' + productId, {
+                method: 'GET',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+
+            if (!button.classList.contains('active')) {
+                button.classList.add('active');
+
+                if (counter) {
+                    counter.textContent = (parseInt(counter.textContent || '0') + 1).toString();
+                }
+            }
+        } catch {
+            const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+            window.location.href = '@Url.Action("Add", "Wishlist")' + '?productId=' + productId + '&returnUrl=' + returnUrl;
+        }
     }
+
+    document.querySelectorAll('.customer-history-replace').forEach(link => {
+        link.addEventListener('click', function (event) {
+            event.preventDefault();
+            window.location.replace(this.href);
+        });
+    });
+
+    document.querySelectorAll('.shop-shell a[href]').forEach(link => {
+        link.addEventListener('click', function (event) {
+            if (this.target === '_blank' || this.href.startsWith('mailto:') || this.href.startsWith('tel:')) {
+                return;
+            }
+
+            if (this.origin === window.location.origin) {
+                event.preventDefault();
+                window.location.replace(this.href);
+            }
+        });
+    });
+
+    const searchForm = document.querySelector('.search-box');
+    if (searchForm) {
+        searchForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const params = new URLSearchParams();
+
+            formData.forEach((value, key) => {
+                if (value) {
+                    params.append(key, value);
+                }
+            });
+
+            const query = params.toString();
+            window.location.replace(this.action + (query ? '?' + query : ''));
+        });
+    }
+
+    document.querySelectorAll('.shop-controls form').forEach(form => {
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const params = new URLSearchParams();
+
+            formData.forEach((value, key) => {
+                if (value) {
+                    params.append(key, value);
+                }
+            });
+
+            const query = params.toString();
+            window.location.replace(this.action + (query ? '?' + query : ''));
+        });
+    });
 </script>
