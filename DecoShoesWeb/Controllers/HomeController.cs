@@ -25,7 +25,8 @@ namespace DecoShoesWeb.Controllers
             string? color,
             decimal? minPrice,
             decimal? maxPrice,
-            string? sort)
+            string? sort,
+            bool showAll = false)
         {
             var categories = await _context.Categories
                 .AsNoTracking()
@@ -121,6 +122,16 @@ namespace DecoShoesWeb.Controllers
             color = string.IsNullOrWhiteSpace(color) ? null : color.Trim();
             sort = string.IsNullOrWhiteSpace(sort) ? null : sort.Trim().ToLowerInvariant();
 
+            var isHomeShowcase = !showAll
+                && selectedCategory == null
+                && filter == null
+                && search == null
+                && size == null
+                && color == null
+                && !minPrice.HasValue
+                && !maxPrice.HasValue
+                && sort == null;
+
             if (size != null)
             {
                 products = products.Where(p => p.ProductSizes.Any(s => s.StockQuantity > 0 && s.Size == size));
@@ -181,6 +192,8 @@ namespace DecoShoesWeb.Controllers
             ViewData["CurrentMinPrice"] = minPrice;
             ViewData["CurrentMaxPrice"] = maxPrice;
             ViewData["CurrentSort"] = sort;
+            ViewData["ShowAll"] = showAll;
+            ViewData["IsHomeShowcase"] = isHomeShowcase;
             ViewData["AvailableColors"] = availableColors;
             ViewData["AvailableSizes"] = availableSizes;
 
@@ -196,6 +209,13 @@ namespace DecoShoesWeb.Controllers
             {
                 productList = productList
                     .OrderBy(_ => Random.Shared.Next())
+                    .ToList();
+            }
+
+            if (isHomeShowcase)
+            {
+                productList = productList
+                    .Take(14)
                     .ToList();
             }
 

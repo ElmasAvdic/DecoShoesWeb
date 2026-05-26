@@ -1,0 +1,72 @@
+@model DecoShoesWeb.Models.Product
+
+@{
+    var wishlistIds = (List<int>)(ViewData["WishlistIds"] ?? new List<int>());
+    var hasDiscount = Model.DiscountPercent.HasValue && Model.DiscountPercent > 0;
+    var discountPercent = Model.DiscountPercent.GetValueOrDefault();
+    var discountedPrice = hasDiscount ? Model.Price * (1 - (discountPercent / 100)) : Model.Price;
+    var isInWishlist = wishlistIds.Contains(Model.ProductID);
+    var categoryText = $"{Model.Category?.Name} {Model.Category?.ParentCategory?.Name}".ToLowerInvariant();
+    var isBagProduct = categoryText.Contains("torb");
+}
+
+<a href="@Url.Action("Details", "Products", new { id = Model.ProductID, source = "shop" })" class="product-card customer-history-replace" title="@Model.Name">
+    <div class="product-image-container">
+        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+        {
+            <img src="@Model.ImageUrl" alt="@Model.Name" class="product-image">
+        }
+        else
+        {
+            <div style="width: 100%; height: 100%; background-color: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #777; font-weight: 700;">Slika nije dostupna</div>
+        }
+
+        @if (hasDiscount)
+        {
+            <div class="discount-badge">-@discountPercent.ToString("F0")%</div>
+        }
+
+        <button class="wishlist-product-btn @(isInWishlist ? "active" : "")" onclick="addToWishlist(@Model.ProductID, event)" type="button" title="Dodaj u listu želja">
+            <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>
+        </button>
+    </div>
+
+    <div class="product-info">
+        <div class="product-name">@Model.Name</div>
+
+        <div class="product-meta">
+            @if (!string.IsNullOrEmpty(Model.Brand))
+            {
+                <div class="product-brand">@Model.Brand</div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.Color))
+            {
+                <div class="product-color">Boja: <strong>@Model.Color</strong></div>
+            }
+        </div>
+
+        <div class="product-price-container">
+            @if (hasDiscount)
+            {
+                <span class="original-price">@Model.Price.ToString("F2") KM</span>
+                <span class="product-discount">-@discountPercent.ToString("F0")%</span>
+            }
+            <div class="product-price">@discountedPrice.ToString("F2") KM</div>
+        </div>
+
+        @if (!isBagProduct && Model.StockQuantity.HasValue && Model.StockQuantity > 0 && Model.StockQuantity <= 3)
+        {
+            <div class="stock-status">Još @Model.StockQuantity kom. na zalihi</div>
+        }
+
+        @if (Model.StockQuantity != 0)
+        {
+            <button class="add-to-cart-btn" onclick="addToCart(@Model.ProductID, event)" type="button">Dodaj u korpu</button>
+        }
+        else
+        {
+            <button class="add-to-cart-btn" style="background-color: #8f5962; cursor: not-allowed;" disabled>Nema na zalihi</button>
+        }
+    </div>
+</a>

@@ -470,13 +470,18 @@
     });
 
     function goBackToShopping() {
-        window.location.replace('@Url.Action("Index", "Home")');
+        if (window.history.length > 1) {
+            window.history.back();
+            return;
+        }
+
+        window.location.href = '@Url.Action("Index", "Home")';
     }
 
     document.querySelectorAll('.customer-history-replace').forEach(link => {
         link.addEventListener('click', function (event) {
             event.preventDefault();
-            window.location.replace(this.href);
+            window.location.href = this.href;
         });
     });
 

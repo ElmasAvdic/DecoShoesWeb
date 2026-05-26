@@ -16,6 +16,8 @@
     var currentMinPrice = (decimal?)ViewData["CurrentMinPrice"];
     var currentMaxPrice = (decimal?)ViewData["CurrentMaxPrice"];
     var currentSort = (string?)ViewData["CurrentSort"];
+    var showAll = ViewData["ShowAll"] is bool showAllValue && showAllValue;
+    var isHomeShowcase = ViewData["IsHomeShowcase"] is bool homeShowcaseValue && homeShowcaseValue;
     var availableColors = (List<string>)(ViewData["AvailableColors"] ?? new List<string>());
     var availableSizes = (List<string>)(ViewData["AvailableSizes"] ?? new List<string>());
     var customerName = Context.Session.GetString("CustomerName");
@@ -42,6 +44,10 @@
         || !string.IsNullOrWhiteSpace(currentColor)
         || currentMinPrice.HasValue
         || currentMaxPrice.HasValue;
+    var showcaseProducts = Model.Count == 0
+        ? new List<Product>()
+        : Enumerable.Range(0, 14).Select(index => Model[index % Model.Count]).ToList();
+    ViewData["WishlistIds"] = wishlistIds;
 }
 
 <style>
@@ -115,6 +121,19 @@
     .products-section { margin-top: 32px; }
     .products-title { font-size: 28px; font-weight: 900; margin-bottom: 24px; color: #211a1d; }
     .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px; }
+    .home-showcase { display: grid; gap: 28px; margin-top: 28px; }
+    .showcase-image { width: 100%; object-fit: cover; display: block; border-radius: 6px; border: 1px solid #f7c9cf; background: #fff; }
+    .showcase-image-wide { height: auto; max-height: 430px; object-fit: contain; }
+    .showcase-image-side { height: 505px; min-height: 0; object-fit: contain; object-position: center; align-self: start; }
+    .showcase-products { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-content: start; }
+    .showcase-split { display: grid; grid-template-columns: minmax(300px, .85fr) minmax(0, 1.6fr); gap: 24px; align-items: start; }
+    .showcase-split-reverse { grid-template-columns: minmax(0, 1.6fr) minmax(300px, .85fr); }
+    .showcase-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .home-showcase .product-card { height: 100%; min-height: 0; }
+    .home-showcase .product-image-container { aspect-ratio: 1 / 1; }
+    .home-showcase .product-info { padding: 12px 14px; }
+    .home-showcase .product-name { font-size: 17px; min-height: 44px; }
+    .home-showcase .product-meta { min-height: 34px; }
     .product-card { background: white; border: 1px solid #f7c9cf; border-radius: 6px; overflow: hidden; text-decoration: none; color: inherit; display: flex; flex-direction: column; transition: border-color .2s ease, box-shadow .2s ease; }
     .product-card:hover { border-color: #e6a7b0; box-shadow: 0 10px 24px rgba(15, 23, 42, .08); }
     .product-image-container { position: relative; width: 100%; aspect-ratio: 4 / 3; background-color: #f5f5f5; overflow: hidden; }
@@ -155,8 +174,10 @@
     .account-switch button { border: none; background: transparent; color: #d82736; font-weight: 900; text-decoration: underline; cursor: pointer; padding: 0; }
     .account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
     .account-error { max-width: 440px; margin: 0 auto 14px; border: 1px solid #f7c9cf; background: #fff1f3; color: #a91524; font-weight: 800; padding: 10px 12px; border-radius: 4px; }
+    @@media (max-width: 980px) { .showcase-grid, .showcase-products { grid-template-columns: repeat(2, minmax(0, 1fr)); } .showcase-split, .showcase-split-reverse { grid-template-columns: 1fr; } .showcase-image-side { height: auto; max-height: none; } }
     @@media (max-width: 900px) { .filter-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @@media (max-width: 760px) { .account-grid { grid-template-columns: 1fr; } .store-header, .category-bar { grid-template-columns: 1fr; } .audience-nav, .utility-nav { justify-content: center; flex-wrap: wrap; } .brand-mark { justify-content: center; } .audience-dropdown { left: 50%; transform: translate(-50%, 8px); } .audience-item:hover .audience-dropdown, .audience-item:focus-within .audience-dropdown { transform: translate(-50%, 0); } }
+    @@media (max-width: 620px) { .showcase-grid, .showcase-products { grid-template-columns: 1fr; } }
     @@media (max-width: 560px) { .filter-panel { grid-template-columns: 1fr; } .sort-form { width: 100%; align-items: stretch; flex-direction: column; } .sort-form select { width: 100%; } }
 </style>
 
@@ -322,7 +343,7 @@
 
     <div class="category-bar">
         <nav class="category-nav" aria-label="Filteri proizvoda">
-            <a class="category-link @(currentFilter == null ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = activeCategoryRouteId, search = currentSearch, size = currentSize, color = currentColor, minPrice = currentMinPrice, maxPrice = currentMaxPrice, sort = currentSort })">Sve</a>
+            <a class="category-link @(!isHomeShowcase && currentFilter == null ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = activeCategoryRouteId, search = currentSearch, size = currentSize, color = currentColor, minPrice = currentMinPrice, maxPrice = currentMaxPrice, sort = currentSort, showAll = true })">Sve</a>
             <a class="category-link @(currentFilter == "new" ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = activeCategoryRouteId, filter = "new", search = currentSearch, size = currentSize, color = currentColor, minPrice = currentMinPrice, maxPrice = currentMaxPrice, sort = currentSort })">Novo</a>
             <a class="category-link discount @(currentFilter == "discounted" ? "active" : "")" href="@Url.Action("Index", "Home", new { categoryId = activeCategoryRouteId, filter = "discounted", search = currentSearch, size = currentSize, color = currentColor, minPrice = currentMinPrice, maxPrice = currentMaxPrice, sort = currentSort })">Sniženo %</a>
             <a class="refresh-view-link" href="@Url.Action("Index", "Home")">Osvježi prikaz</a>
@@ -414,92 +435,70 @@
         <span>Dostava u 2 - 4 radna dana</span>
     </div>
 
-    <section class="products-section">
-        <h2 class="products-title">
-            @if (currentFilter == "new") { <span>Novo - @allProductsLabel</span> }
-            else if (currentFilter == "discounted") { <span>Sniženo - @allProductsLabel</span> }
-            else { <span>@allProductsLabel</span> }
-        </h2>
+    @if (isHomeShowcase)
+    {
+        <section class="home-showcase" aria-label="DecoShoes izlog">
+            <img class="showcase-image showcase-image-wide" src="~/images/home/showcase-wide.png" alt="DecoShoes izlog" />
 
-        @if (Model.Count == 0)
-        {
-            <div class="no-products">Nema dostupnih proizvoda za odabrani filter.</div>
-        }
-        else
-        {
-            <div class="products-grid">
-                @foreach (var product in Model)
+            <div class="products-grid showcase-grid">
+                @foreach (var product in showcaseProducts.Take(4))
                 {
-                    var hasDiscount = product.DiscountPercent.HasValue && product.DiscountPercent > 0;
-                    var discountedPrice = hasDiscount ? product.Price * (1 - (product.DiscountPercent.Value / 100)) : product.Price;
-                    var isInWishlist = wishlistIds.Contains(product.ProductID);
-                    var categoryText = $"{product.Category?.Name} {product.Category?.ParentCategory?.Name}".ToLowerInvariant();
-                    var isBagProduct = categoryText.Contains("torb");
-
-                    <a href="@Url.Action("Details", "Products", new { id = product.ProductID, source = "shop" })" class="product-card customer-history-replace" title="@product.Name">
-                        <div class="product-image-container">
-                            @if (!string.IsNullOrEmpty(product.ImageUrl))
-                            {
-                                <img src="@product.ImageUrl" alt="@product.Name" class="product-image">
-                            }
-                            else
-                            {
-                                <div style="width: 100%; height: 100%; background-color: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #777; font-weight: 700;">Slika nije dostupna</div>
-                            }
-
-                            @if (hasDiscount)
-                            {
-                                <div class="discount-badge">-@product.DiscountPercent.Value.ToString("F0")%</div>
-                            }
-
-                            <button class="wishlist-product-btn @(isInWishlist ? "active" : "")" onclick="addToWishlist(@product.ProductID, event)" type="button" title="Dodaj u listu želja">
-                                <svg viewBox="0 0 24 24"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>
-                            </button>
-                        </div>
-
-                        <div class="product-info">
-                            <div class="product-name">@product.Name</div>
-
-                            <div class="product-meta">
-                                @if (!string.IsNullOrEmpty(product.Brand))
-                                {
-                                    <div class="product-brand">@product.Brand</div>
-                                }
-
-                                @if (!string.IsNullOrEmpty(product.Color))
-                                {
-                                    <div class="product-color">Boja: <strong>@product.Color</strong></div>
-                                }
-                            </div>
-
-                            <div class="product-price-container">
-                                @if (hasDiscount)
-                                {
-                                    <span class="original-price">@product.Price.ToString("F2") KM</span>
-                                    <span class="product-discount">-@product.DiscountPercent.Value.ToString("F0")%</span>
-                                }
-                                <div class="product-price">@discountedPrice.ToString("F2") KM</div>
-                            </div>
-
-                            @if (!isBagProduct && product.StockQuantity.HasValue && product.StockQuantity > 0 && product.StockQuantity <= 3)
-                            {
-                                <div class="stock-status">Još @product.StockQuantity kom. na zalihi</div>
-                            }
-
-                            @if (product.StockQuantity != 0)
-                            {
-                                <button class="add-to-cart-btn" onclick="addToCart(@product.ProductID, event)" type="button">Dodaj u korpu</button>
-                            }
-                            else
-                            {
-                                <button class="add-to-cart-btn" style="background-color: #8f5962; cursor: not-allowed;" disabled>Nema na zalihi</button>
-                            }
-                        </div>
-                    </a>
+                    <partial name="_ProductCard" model="product" />
                 }
             </div>
-        }
-    </section>
+
+            <div class="showcase-split">
+                <img class="showcase-image showcase-image-side" src="~/images/home/showcase-left.png" alt="DecoShoes kolekcija" />
+                <div class="showcase-products">
+                    @foreach (var product in showcaseProducts.Skip(4).Take(3))
+                    {
+                        <partial name="_ProductCard" model="product" />
+                    }
+                </div>
+            </div>
+
+            <div class="products-grid showcase-grid">
+                @foreach (var product in showcaseProducts.Skip(7).Take(4))
+                {
+                    <partial name="_ProductCard" model="product" />
+                }
+            </div>
+
+            <div class="showcase-split showcase-split-reverse">
+                <div class="showcase-products">
+                    @foreach (var product in showcaseProducts.Skip(11).Take(3))
+                    {
+                        <partial name="_ProductCard" model="product" />
+                    }
+                </div>
+                <img class="showcase-image showcase-image-side" src="~/images/home/showcase-right.png" alt="DecoShoes nova ponuda" />
+            </div>
+        </section>
+    }
+    else
+    {
+        <section class="products-section">
+            <h2 class="products-title">
+                @if (currentFilter == "new") { <span>Novo - @allProductsLabel</span> }
+                else if (currentFilter == "discounted") { <span>Sniženo - @allProductsLabel</span> }
+                else { <span>@allProductsLabel</span> }
+            </h2>
+
+            @if (Model.Count == 0)
+            {
+                <div class="no-products">Nema dostupnih proizvoda za odabrani filter.</div>
+            }
+            else
+            {
+                <div class="products-grid">
+                    @foreach (var product in Model)
+                    {
+                        <partial name="_ProductCard" model="product" />
+                    }
+                </div>
+            }
+        </section>
+    }
 </div>
 
 <script>
@@ -577,7 +576,7 @@
     function addToCart(productId, event) {
         event.preventDefault();
         event.stopPropagation();
-        window.location.replace('@Url.Action("Details", "Products")' + '?id=' + productId + '&source=shop');
+        window.location.href = '@Url.Action("Details", "Products")' + '?id=' + productId + '&source=shop';
     }
 
     async function addToWishlist(productId, event) {
@@ -609,7 +608,7 @@
     document.querySelectorAll('.customer-history-replace').forEach(link => {
         link.addEventListener('click', function (event) {
             event.preventDefault();
-            window.location.replace(this.href);
+            window.location.href = this.href;
         });
     });
 
@@ -621,7 +620,7 @@
 
             if (this.origin === window.location.origin) {
                 event.preventDefault();
-                window.location.replace(this.href);
+                window.location.href = this.href;
             }
         });
     });
@@ -640,7 +639,7 @@
             });
 
             const query = params.toString();
-            window.location.replace(this.action + (query ? '?' + query : ''));
+            window.location.href = this.action + (query ? '?' + query : '');
         });
     }
 
@@ -657,7 +656,7 @@
             });
 
             const query = params.toString();
-            window.location.replace(this.action + (query ? '?' + query : ''));
+            window.location.href = this.action + (query ? '?' + query : '');
         });
     });
 </script>
